@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&family=TASA+Explorer:wght@400..800&display=swap');
+
 * {
   margin: 0;
   padding: 0;
@@ -6,7 +8,9 @@
 }
 
 body {
-  font-family: 'Arial', sans-serif;
+  font-family: "TASA Explorer", sans-serif;
+  font-optical-sizing: auto;
+  font-style: normal;
 }
 
 .container {
@@ -16,12 +20,13 @@ body {
 }
 
 header {
-  background-color: lightskyblue;
+  background-color: #fef9f1;
 }
 
 .main-header {
   min-height: 90px;
-  padding-block: 20px;
+  padding-block: 12px;
+  padding-inline: 42px;
 
   display: flex;
   justify-content: space-between;
@@ -30,13 +35,31 @@ header {
 }
 
 .brand-name {
-  font-size: 1.125rem;
-  font-weight: bold;
   text-decoration: none;
   color: #333;
+  height: 75px;
+}
+
+.brand-name>figure {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  scale: 1.3;
+  transition: scale 0.3s ease-out;
+}
+
+.brand-name>figure:hover {
+  scale: 1.5;
+}
+
+.brand-name>figure:hover img {
+  transition: all 0.3s ease-out;
+  filter: drop-shadow(0 0 0.75rem rgb(249, 196, 98));
 }
 
 .navigation-drawer {
+  background-color: yellowgreen;
   min-height: 100vh;
   width: 200px;
   padding: 20px 10px;
@@ -84,8 +107,8 @@ header {
   padding: 6px 10px;
 
   display: block;
-  
-  color: #333;
+  font-weight: 600;
+  color: #b5512e;
   text-decoration: none;
 }
 
