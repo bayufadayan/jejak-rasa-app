@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&family=TASA+Explorer:wght@400..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap');
 
 * {
   margin: 0;
@@ -8,7 +8,7 @@
 }
 
 body {
-  font-family: "TASA Explorer", sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-optical-sizing: auto;
   font-style: normal;
 }
@@ -122,6 +122,109 @@ header {
 }
 
 /* Write your styles more here */
+.hero {
+  background-color: red;
+}
+
+.hide-me {
+  display: none;
+}
+
+/* AUTH STYLE */
+.auth {
+  position: relative;
+}
+
+.auth__container {
+  justify-content: center;
+  display: flex;
+  padding-block: 3.5em;
+  padding-right: 4em;
+  gap: 16px;
+  max-height: 100vh;
+  align-items: center;
+}
+
+.auth__content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 50%;
+  /* margin-right: 10em; */
+}
+
+.auth__header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: transparent;
+}
+
+.auth__title {
+  font-family: "Figtree", sans-serif;
+  font-weight: 600;
+  font-size: 2.2em;
+}
+
+.auth__description {
+  text-align: left;
+  font-size: 1em;
+}
+
+.auth__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth__field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.auth__label {
+  font-weight: 500;
+  font-size: 1em;
+  opacity: 0.6;
+}
+
+.auth__input {
+  font-size: 1.2em;
+  border: none;
+  outline: none;
+  padding-block: 8px;
+  font-weight: 500;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.50);
+  background-color: transparent;
+}
+
+.auth__button {
+  background-color: #E4E447;
+  font-family: "DM Sans", sans-serif;
+  border: none;
+  font-size: 1.2em;
+  font-weight: 700;
+  padding-block: 0.5em;
+  margin-top: 2em;
+}
+
+.auth__decoration {
+  display: flex;
+  position: relative;
+  height: 500px;
+}
+
+.auth__figure {
+  width: 100%;
+  height: 100%;
+}
+
+.auth__figure img {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+}
 
 @media screen and (width > 1000px) {
   .navigation-drawer {
