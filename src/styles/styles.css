@@ -1,5 +1,31 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap');
 
+/* ======== GENERAL ========= */
+
+.main__btn {
+  background-color: #E4E447;
+  font-family: "DM Sans", sans-serif;
+  border: none;
+  font-size: 1.2em;
+  font-weight: 700;
+  padding-block: 0.7em;
+  margin-top: 0.5em;
+  transition: all 0.3s ease;
+}
+
+.main__btn:hover {
+  background-color: #cfcf2a;
+  cursor: pointer;
+  transform: scale(1.01);
+  transform: translateY(-4px);
+}
+
+.main__btn:active {
+  transform: scale(0.9);
+}
+
+/* ================= */
+
 * {
   margin: 0;
   padding: 0;
@@ -152,6 +178,10 @@ body {
   align-items: center;
 }
 
+.auth__container--register {
+  flex-direction: row-reverse;
+}
+
 .auth__content {
   display: flex;
   flex-direction: column;
@@ -226,28 +256,6 @@ body {
   border-bottom: 2px solid rgba(0, 0, 0, 1);
 }
 
-.auth__button {
-  background-color: #E4E447;
-  font-family: "DM Sans", sans-serif;
-  border: none;
-  font-size: 1.2em;
-  font-weight: 700;
-  padding-block: 0.7em;
-  margin-top: 0.5em;
-  transition: all 0.3s ease;
-}
-
-.auth__button:hover {
-  background-color: #cfcf2a;
-  cursor: pointer;
-  transform: scale(1.01);
-  transform: translateY(-4px);
-}
-
-.auth__button:active {
-  transform: scale(0.9);
-}
-
 .auth__link,
 .auth__link:visited {
   color: #b5512e;
@@ -312,6 +320,10 @@ body {
     position: absolute;
   }
 
+  .auth__navbar--register {
+    right: 48px;
+  }
+
   .auth__container {
     justify-content: center;
     display: flex;
@@ -320,6 +332,11 @@ body {
     gap: 16px;
     max-height: 100vh;
     align-items: center;
+  }
+
+  .auth__container--register {
+    padding-right: 0px !important; 
+    padding-left: 8em;
   }
 
   .auth__header {

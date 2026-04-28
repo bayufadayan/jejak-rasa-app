@@ -7,7 +7,6 @@ export default class LoginPage {
         <section class="container auth">
             <unauthorize-header></unauthorize-header>
             <div class="auth__container">
-                <!-- Decoration -->
                 <div class="auth__decoration">
                     <figure class="auth__figure">
                         <img src="public/images/login-decoration.svg" alt="decoration" class="auth__image">
@@ -26,7 +25,7 @@ export default class LoginPage {
                         <field-group type="email" id="email" label="Email"></field-group>
                         <field-group type="password" id="password" label="Password"></field-group>
 
-                        <button type="submit" class="auth__button">Masuk</button>
+                        <button type="submit" class="main__btn">Masuk</button>
                         <p>Belum punya akun? <a href="/#/register" class="auth__link">Daftar disini</a></p>
                     </form>
                 </div>
@@ -39,19 +38,19 @@ export default class LoginPage {
         const navbar = document.getElementsByClassName("main__navbar")[0];
         navbar.classList.add("hide-me");
 
-        this.#setupForm();
+        // this.#setupForm();
     }
 
-    #setupForm() {
-        document.getElementById('auth__form').addEventListener('submit', async (event) => {
-            event.preventDefault();
+    // #setupForm() {
+    //     document.getElementById('auth__form').addEventListener('submit', async (event) => {
+    //         event.preventDefault();
 
-            const data = {
-                email: document.getElementById('email-input').value,
-                password: document.getElementById('password-input').value,
-            };
+    //         const data = {
+    //             email: document.getElementById('email-input').value,
+    //             password: document.getElementById('password-input').value,
+    //         };
 
-            // await this.#presenter.getLogin(data);
-        });
-    }
+    //         // await this.#presenter.getLogin(data);
+    //     });
+    // }
 }
