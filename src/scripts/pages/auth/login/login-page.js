@@ -1,7 +1,11 @@
+import '../../../components/unauthorize-header.js';
+import '../../../components/field-group.js';
+
 export default class LoginPage {
     async render() {
         return /* html */ `
         <section class="container auth">
+            <unauthorize-header></unauthorize-header>
             <div class="auth__container">
                 <!-- Decoration -->
                 <div class="auth__decoration">
@@ -19,16 +23,11 @@ export default class LoginPage {
                     </header>
 
                     <form class="auth__form">
-                        <div class="auth__field-group">
-                            <label for="email" class="auth__label">Email</label>
-                            <input type="email" id="email" name="email" class="auth__input">
-                        </div>
-                        <div class="auth__field-group">
-                            <label for="password" class="auth__label">Password</label>
-                            <input type="password" id="password" name="password" class="auth__input">
-                        </div>
+                        <field-group type="email" id="email" label="Email"></field-group>
+                        <field-group type="password" id="password" label="Password"></field-group>
 
                         <button type="submit" class="auth__button">Masuk</button>
+                        <p>Belum punya akun? <a href="/#/register" class="auth__link">Daftar disini</a></p>
                     </form>
                 </div>
             </div>
@@ -37,7 +36,22 @@ export default class LoginPage {
     }
 
     async afterRender() {
-        const navbar = document.getElementsByTagName("header")[0];
+        const navbar = document.getElementsByClassName("main__navbar")[0];
         navbar.classList.add("hide-me");
+
+        this.#setupForm();
+    }
+
+    #setupForm() {
+        document.getElementById('auth__form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const data = {
+                email: document.getElementById('email-input').value,
+                password: document.getElementById('password-input').value,
+            };
+
+            // await this.#presenter.getLogin(data);
+        });
     }
 }

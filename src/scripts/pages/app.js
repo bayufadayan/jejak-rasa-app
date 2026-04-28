@@ -1,5 +1,5 @@
 import routes from '../routes/routes';
-import '../components/header.js'
+import '../components/main-header.js'
 import { getActiveRoute } from '../routes/url-parser';
 
 class App {

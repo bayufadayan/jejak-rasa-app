@@ -1,11 +1,11 @@
-class MyHeader extends HTMLElement {
+class MainHeader extends HTMLElement {
     connectedCallback() {
         this.render();
     }
 
     render() {
         this.innerHTML = /* html */ `
-        <header>
+        <header class="main__navbar">
             <div class="main-header container">
                 <a class="brand-name" href="#/">
                     <figure>
@@ -28,4 +28,4 @@ class MyHeader extends HTMLElement {
     }
 }
 
-customElements.define('my-header', MyHeader);
+customElements.define('main-header', MainHeader);
