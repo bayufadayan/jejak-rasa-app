@@ -31,6 +31,7 @@ export function putAccessToken(token) {
 export function removeAccessToken() {
     try {
         localStorage.removeItem(CONFIG.ACCESS_TOKEN_KEY);
+        localStorage.removeItem(CONFIG.ACCOUNT_OWNER);
         return true;
     } catch (error) {
         console.error("removeAccessToken: error:", error);

@@ -50,6 +50,7 @@ export async function getLogin({email, password}) {
 
 export function getLogout() {
     removeAccessToken();
+    location.hash = "/login";
 }
 
 export async function getData() {

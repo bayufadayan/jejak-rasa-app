@@ -142,6 +142,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px 20px;
+  position: relative;
 }
 
 .nav-list li a {
@@ -155,6 +156,82 @@ body {
 
 .nav-list li a:hover {
   text-decoration: underline;
+}
+
+.nav-list__dropdown-button {
+  background-color: #b5512e;
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+  padding: 6px 8px;
+  color: white;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.nav-list__dropdown-button:hover {
+  background-color: #7c3115;
+}
+
+.nav-list__dropdown-button span,
+.nav-list__dropdown-button svg {
+  display: flex;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.nav-list__dropdown-button svg:first-child {
+  margin-inline: 4px;
+}
+.nav-list__dropdown-button svg, .nav-list__dropdown-option svg {
+  height: 16px;
+  width: 16px;
+}
+
+.nav-list__dropdown-option {
+  background-color: transparent;
+  position: absolute;
+  bottom: 0px;
+  right: 0;
+  transform: translateY(100%);
+  width: 160px;
+  padding-block: 8px;
+  display: none;
+}
+
+.nav-list__dropdown-button.open svg:last-child {
+  transform: rotate(180deg);
+}
+
+.nav-list__dropdown-option.open {
+  display: block;
+}
+
+.nav-list__dropdown-option button {
+  display: flex;
+  outline: none;
+  border: none;
+  padding: 8px 12px;
+  width: 100%;
+  font-family: "DM Sans", sans-serif;
+  font-weight: 600;
+  background-color: #ff355b;
+  color: white;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-list__dropdown-option button:hover {
+  background-color: #ce1b3c;
+  transform: scale(1.05);
+}
+
+.nav-list__dropdown-option button:active {
+  transform: scale(0.9);
+  transform: translateY(2px);
 }
 
 /* MAIN */
@@ -325,7 +402,8 @@ body {
 }
 
 .toast__container.slide-out {
-  animation: slideOut 0.5s ease-in forwards;;
+  animation: slideOut 0.5s ease-in forwards;
+  ;
 }
 
 .toast__icon {
@@ -348,7 +426,7 @@ body {
   padding: 2px;
 }
 
-.toast__content{
+.toast__content {
   display: flex;
   flex-direction: column;
   max-width: 200px;
@@ -417,7 +495,7 @@ body {
   }
 
   .auth__container--register {
-    padding-right: 0px !important; 
+    padding-right: 0px !important;
     padding-left: 4em;
   }
 

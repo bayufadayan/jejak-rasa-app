@@ -1,3 +1,5 @@
+import CONFIG from "../../../config";
+
 export default class LoginPresenter {
     #view;
     #model;
@@ -21,6 +23,8 @@ export default class LoginPresenter {
             }
 
             this.#authModel.putAccessToken(response.loginResult.token);
+            localStorage.setItem(CONFIG.ACCOUNT_OWNER, response.loginResult.name)
+            
             this.#view.loginSuccessfully(response.message, response.loginResult);
         } catch (error) {
             console.error("getLogin: error:", error);
