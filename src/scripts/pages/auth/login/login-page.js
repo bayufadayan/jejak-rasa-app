@@ -40,6 +40,7 @@ export default class LoginPage {
         `;
     }
 
+
     async afterRender() {
         const navbar = document.getElementsByClassName("main__navbar")[0];
         navbar.classList.add("hide-me");
@@ -105,35 +106,37 @@ export default class LoginPage {
         }
     }
 
-    #showToast(type, message) {
+    showToast(type, message) {
         const toast = document.createElement('my-toast');
         toast.setAttribute('type', type);
         toast.setAttribute('message', message);
 
         document.body.appendChild(toast);
 
-        const toastContainer = document.querySelector(".toast__container");
+        const toastContainer = toast.querySelector(".toast__container");
         if (toastContainer) {
             toastContainer.classList.remove('slide-out');
         }
 
         setTimeout(() => {
-            toastContainer.classList.add("slide-out");
-            toastContainer.onanimationend = () => {
-                toast.remove();
-            };
-        }, 1000);
+        if (toastContainer) {
+            toastContainer.classList.add('slide-out');
+            toastContainer.onanimationend = () => toast.remove();
+        } else {
+            toast.remove();
+        }
 
-        console.log("dari login")
+        console.log(toastContainer)
+    }, 2500);
     }
 
     loginSuccessfully(message) {
-        this.#showToast("success", message)
-        location.hash = '/';
+        this.showToast("success", message)
+        location.replace('/#/');
     }
 
     loginFailed(message) {
-        this.#showToast("error", message)
+        this.showToast("error", message)
     }
 
     

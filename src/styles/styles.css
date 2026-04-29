@@ -114,7 +114,7 @@ body {
   transform: translateX(-100%);
   transition: transform 350ms;
 
-  z-index: 9999;
+  z-index: 998;
 }
 
 .navigation-drawer.open {
@@ -303,15 +303,17 @@ body {
 .toast__container {
   position: absolute;
   top: 40px;
-  left: 32px;
+  right: 32px;
   display: flex;
-  justify-content: center;
+  justify-content: left;
   align-items: center;
-  justify-self: center;
   gap: 8px;
   padding: 8px;
-  border-left: 4px solid #fff;
+  padding-inline: 12px;
+  border-right: 4px solid #fff;
   animation: slideIn 0.5s ease-in forwards;
+  min-width: 200px;
+  z-index: 999;
 }
 
 .toast__container.slide-out {

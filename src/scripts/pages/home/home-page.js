@@ -8,6 +8,7 @@ export default class HomePage {
   }
 
   async afterRender() {
-    // Do your job here
+    const navbar = document.getElementsByClassName("main__navbar")[0];
+    navbar.classList.remove("hide-me");
   }
 }

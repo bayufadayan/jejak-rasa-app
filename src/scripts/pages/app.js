@@ -38,7 +38,10 @@ class App {
 
   async renderPage() {
     const url = getActiveRoute();
-    const page = routes[url];
+    const route = routes[url];
+
+    const page = route();
+    if (!page) return;
 
     this.#content.innerHTML = await page.render();
     await page.afterRender();
