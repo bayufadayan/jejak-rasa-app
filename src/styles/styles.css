@@ -271,6 +271,14 @@ body {
   border-bottom: 2px solid rgba(0, 0, 0, 1);
 }
 
+.auth__field-error-message {
+  color: #ff355b;
+  font-size: small;
+  font-style: italic;
+  font-weight: 500;
+  display: none;
+}
+
 .auth__link,
 .auth__link:visited {
   color: #b5512e;

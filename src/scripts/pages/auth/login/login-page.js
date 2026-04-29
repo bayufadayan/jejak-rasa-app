@@ -126,8 +126,8 @@ export default class LoginPage {
             toast.remove();
         }
 
-        console.log(toastContainer)
-    }, 2500);
+            console.log(toastContainer)
+        }, 2500);
     }
 
     loginSuccessfully(message) {
