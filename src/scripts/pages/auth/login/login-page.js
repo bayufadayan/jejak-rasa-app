@@ -1,7 +1,13 @@
 import '../../../components/unauthorize-header.js';
 import '../../../components/field-group.js';
+import '../../../components/my-toast.js';
+import LoginPresenter from './login-presenter.js';
+import * as API from '../../../data/api.js';
+import * as AuthModel from '../../../utils/auth.js';
 
 export default class LoginPage {
+    #presenter = null;
+
     async render() {
         return /* html */ `
         <section class="container auth">
@@ -38,19 +44,105 @@ export default class LoginPage {
         const navbar = document.getElementsByClassName("main__navbar")[0];
         navbar.classList.add("hide-me");
 
-        // this.#setupForm();
+        this.#presenter = new LoginPresenter({
+            view: this,
+            model: API,
+            authModel: AuthModel
+        })
+        
+
+        this.#setupForm();
     }
 
-    // #setupForm() {
-    //     document.getElementById('auth__form').addEventListener('submit', async (event) => {
-    //         event.preventDefault();
+    #setupForm() {
+        document.querySelector('.auth__form').addEventListener('submit', async (event) => {
+            event.preventDefault();
 
-    //         const data = {
-    //             email: document.getElementById('email-input').value,
-    //             password: document.getElementById('password-input').value,
-    //         };
+            const email = document.querySelector('#email input').value;
+            const password = document.querySelector('#password input').value;
 
-    //         // await this.#presenter.getLogin(data);
-    //     });
+            const data = {
+                email: email,
+                password: password,
+            };
+
+            await this.#presenter.getLogin(data);
+        });
+    }
+
+    showLoading(isLoading){
+        const submitBtn = document.querySelector(".main__btn");
+
+        if (isLoading) {
+            submitBtn.classList.add("main__btn--loading");
+            submitBtn.innerHTML = `
+                <span style="display:flex; align-items:center; gap:8px; justify-content:center;">
+                    <svg width="18" height="18" viewBox="0 0 50 50">
+                    <circle
+                        cx="25"
+                        cy="25"
+                        r="20"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="4"
+                        stroke-linecap="round"
+                        stroke-dasharray="90 150">
+                        <animateTransform
+                        attributeName="transform"
+                        type="rotate"
+                        from="0 25 25"
+                        to="360 25 25"
+                        dur="1s"
+                        repeatCount="indefinite" />
+                    </circle>
+                    </svg>
+                    <span>Loading...</span>
+                </span>
+                `;
+        } else {
+            submitBtn.classList.remove("main__btn--loading");
+            submitBtn.textContent = "Masuk";
+        }
+    }
+
+    #showToast(type, message) {
+        const toast = document.createElement('my-toast');
+        toast.setAttribute('type', type);
+        toast.setAttribute('message', message);
+
+        document.body.appendChild(toast);
+
+        const toastContainer = document.querySelector(".toast__container");
+        if (toastContainer) {
+            toastContainer.classList.remove('slide-out');
+        }
+
+        setTimeout(() => {
+            toastContainer.classList.add("slide-out");
+            toastContainer.onanimationend = () => {
+                toast.remove();
+            };
+        }, 1000);
+
+        console.log("dari login")
+    }
+
+    loginSuccessfully(message) {
+        this.#showToast("success", message)
+        location.hash = '/';
+    }
+
+    loginFailed(message) {
+        this.#showToast("error", message)
+    }
+
+    
+    // #formValidation(email, password) {
+    //   if (!email || !password) {
+    //     return {
+    //       validation: "error",
+    //       message: "Kolom wajib diisi"
+    //     }
+    //   }
     // }
 }

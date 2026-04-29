@@ -1,4 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Figtree:ital,wght@0,300..900;1,300..900&display=swap');
+@import './variables.css';
+@import './animations.css';
 
 /* ======== GENERAL ========= */
 
@@ -11,6 +13,7 @@
   padding-block: 0.7em;
   margin-top: 0.5em;
   transition: all 0.3s ease;
+  opacity: 1;
 }
 
 .main__btn:hover {
@@ -22,6 +25,17 @@
 
 .main__btn:active {
   transform: scale(0.9);
+}
+
+.main__btn--loading {
+  background-color: #cfcf2a !important;
+  cursor: not-allowed !important;
+  opacity: 0.7 !important;
+}
+
+.main__btn--loading:hover {
+  transform: scale(1) !important;
+  transform: translateY(0) !important;
 }
 
 /* ================= */
@@ -37,6 +51,7 @@ body {
   font-family: "DM Sans", sans-serif;
   font-optical-sizing: auto;
   font-style: normal;
+  position: relative;
 }
 
 .container {
@@ -285,6 +300,63 @@ body {
   height: 100%;
 }
 
+.toast__container {
+  position: absolute;
+  top: 40px;
+  left: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  justify-self: center;
+  gap: 8px;
+  padding: 8px;
+  border-left: 4px solid #fff;
+  animation: slideIn 0.5s ease-in forwards;
+}
+
+.toast__container.slide-out {
+  animation: slideOut 0.5s ease-in forwards;;
+}
+
+.toast__icon {
+  display: flex;
+  flex-grow: 0;
+  flex-shrink: 0;
+  height: 32px;
+  width: 32px;
+  justify-content: center;
+  align-items: center;
+}
+
+.toast__icon svg {
+  display: flex;
+  object-fit: cover;
+  height: 100%;
+  width: 100%;
+  border-radius: 100%;
+  color: white;
+  padding: 2px;
+}
+
+.toast__content{
+  display: flex;
+  flex-direction: column;
+  max-width: 200px;
+  overflow-wrap: break-word;
+}
+
+.toast__status {
+  display: flex;
+  text-wrap: pretty;
+}
+
+.toast__message {
+  display: flex;
+  text-wrap: pretty;
+  word-break: break-all;
+  font-size: small;
+}
+
 @media screen and (width > 1000px) {
   .navigation-drawer {
     min-height: auto;
@@ -336,7 +408,7 @@ body {
 
   .auth__container--register {
     padding-right: 0px !important; 
-    padding-left: 8em;
+    padding-left: 4em;
   }
 
   .auth__header {
