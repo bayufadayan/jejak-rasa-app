@@ -43,8 +43,17 @@ class App {
     const page = route();
     if (!page) return;
 
-    this.#content.innerHTML = await page.render();
-    await page.afterRender();
+    const renderContent = async () => {
+      this.#content.innerHTML = await page.render();
+      await page.afterRender();
+    };
+
+    if (document.startViewTransition) {
+      await document.startViewTransition(renderContent).finished;
+      return;
+    }
+
+    await renderContent();
   }
 }
 

@@ -11,7 +11,7 @@ class UnauthorizeHeader extends HTMLElement {
             <div class="main-header">
                 <a class="brand-name" href="#/">
                     <figure>
-                        <img src="/public/images/logo-jejak-rasa.png"/>
+                        <img src="/images/logo-jejak-rasa.png" alt="Jejak Rasa"/>
                     </figure>
                 </a>
             </div>

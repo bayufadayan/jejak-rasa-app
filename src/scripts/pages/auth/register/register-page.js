@@ -14,7 +14,7 @@ export default class RegisterPage {
             <div class="auth__container auth__container--register">
                 <div class="auth__decoration">
                     <figure class="auth__figure">
-                        <img src="public/images/register-decoration.svg" alt="decoration" class="auth__image">
+                        <img src="/images/register-decoration.svg" alt="" class="auth__image">
                     </figure>
                 </div>
 

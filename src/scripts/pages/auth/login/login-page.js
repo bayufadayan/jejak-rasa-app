@@ -15,7 +15,7 @@ export default class LoginPage {
             <div class="auth__container">
                 <div class="auth__decoration">
                     <figure class="auth__figure">
-                        <img src="public/images/login-decoration.svg" alt="decoration" class="auth__image">
+                        <img src="/images/login-decoration.svg" alt="" class="auth__image">
                     </figure>
                 </div>
 
