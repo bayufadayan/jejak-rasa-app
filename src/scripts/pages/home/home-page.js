@@ -8,11 +8,14 @@ export default class HomePage {
       <section class="home container">
         <div class="home__shell">
           <section class="home__map-panel" aria-label="Peta Jejak Rasa">
-            <div class="home__eyebrow">Jejak Rasa</div>
-            <div class="home__header">
-              <h1 class="home__title">Peta Rasa yang Pernah Disinggahi</h1>
-              <p class="home__description">Layar depan untuk menampilkan jejak cerita dalam suasana hangat, nostalgia, dan penuh rute kenangan.</p>
+            <div class="home__header-top">
+              <div>
+                <div class="home__eyebrow">Jejak Rasa</div>
+                <h1 class="home__title">Peta Rasa yang Pernah Disinggahi</h1>
+              </div>
+              <a class="home__add-btn" href="#/add-story" aria-label="Tambah cerita baru">Tambah cerita</a>
             </div>
+            <p class="home__description">Layar depan untuk menampilkan jejak cerita dalam suasana hangat, nostalgia, dan penuh rute kenangan.</p>
 
             <div class="home__map-card">
               <div class="home__map-surface" aria-hidden="true">
@@ -44,7 +47,10 @@ export default class HomePage {
                 <p class="home__eyebrow">Story Terkini</p>
                 <h2 class="home__section-title">Cerita yang Pernah Dibuat</h2>
               </div>
-              <p class="home__section-description">Grid berikut disiapkan untuk menampung story user dengan tampilan kartu memanjang di desktop dan lebih ringkas di mobile.</p>
+              <div class="home__section-actions">
+                <p class="home__section-description">Grid berikut disiapkan untuk menampung story user dengan tampilan kartu memanjang di desktop dan lebih ringkas di mobile.</p>
+                <a href="#/add-story" class="home__add-btn">+ Tambah Cerita Baru</a>
+              </div>
             </div>
 
             <div class="home__story-grid">
@@ -76,5 +82,6 @@ export default class HomePage {
   async afterRender() {
     const navbar = document.getElementsByClassName("main__navbar")[0];
     navbar.classList.remove("hide-me");
+    window.scrollTo(0, 0);
   }
 }
