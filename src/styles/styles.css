@@ -1152,6 +1152,137 @@ select,
   font-size: 1rem;
 }
 
+.add-story__photo-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.add-story__photo-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid #d8b893;
+  border-radius: 0;
+  background: rgba(255, 248, 236, 0.78);
+  color: #2d2118;
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.98rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.add-story__photo-action-btn:hover {
+  transform: translateY(-2px);
+  border-color: #b5512e;
+  box-shadow: 0 10px 18px rgba(93, 60, 32, 0.08);
+}
+
+.add-story__photo-action-btn:active {
+  transform: translateY(0);
+}
+
+.add-story__photo-action-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.add-story__photo-action-btn--gallery {
+  background: linear-gradient(180deg, #fffaf3 0%, #fff5e7 100%);
+}
+
+.add-story__photo-action-btn--camera {
+  background: linear-gradient(180deg, #fff1df 0%, #ffe7c6 100%);
+}
+
+.add-story__camera-panel {
+  display: none;
+}
+
+.add-story__camera-panel:not([hidden]) {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #ead7bd;
+  background: rgba(255, 250, 242, 0.88);
+}
+
+.add-story__camera-view {
+  overflow: hidden;
+  min-height: 240px;
+  aspect-ratio: 4 / 3;
+  border: 1px solid #d8b893;
+  background: #1f1710;
+}
+
+.add-story__camera-video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.add-story__camera-tools {
+  display: grid;
+  gap: 12px;
+}
+
+.add-story__camera-select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d8b893;
+  border-radius: 0;
+  background: #fff;
+  color: #2d2118;
+  font-family: "DM Sans", sans-serif;
+  font-size: 1rem;
+}
+
+.add-story__camera-tools-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.add-story__camera-capture-btn,
+.add-story__camera-close-btn {
+  padding: 0.8rem 1.2rem;
+  border: 1px solid #d8b893;
+  border-radius: 0;
+  background: #b5512e;
+  color: #fff;
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.add-story__camera-capture-btn:hover,
+.add-story__camera-close-btn:hover {
+  transform: translateY(-2px);
+  background: #8a3e20;
+  box-shadow: 0 10px 18px rgba(93, 60, 32, 0.12);
+}
+
+.add-story__camera-close-btn {
+  background: transparent;
+  color: #b5512e;
+}
+
+.add-story__camera-close-btn:hover {
+  background: rgba(181, 81, 46, 0.1);
+}
+
 .add-story__required {
   color: #ff355b;
 }
@@ -1175,16 +1306,31 @@ select,
 }
 
 .add-story__photo-preview {
-  aspect-ratio: 16 / 10;
+  display: none;
   border-radius: 0;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid #ead7bd;
+  background: linear-gradient(180deg, #fffaf3 0%, #fff5e7 100%);
 }
 
-.add-story__photo-preview img {
+.add-story__photo-preview-canvas {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  display: block;
+}
+
+.add-story__photo-preview-empty {
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: #8f7a67;
+  text-align: center;
+}
+
+.add-story__photo-preview-empty p {
+  max-width: 220px;
+  line-height: 1.6;
 }
 
 .add-story__photo-hint {
@@ -1264,6 +1410,7 @@ select,
 }
 
 .add-story__preview-figure {
+  display: none;
   aspect-ratio: 16 / 10;
   border-radius: 0;
   overflow: hidden;
@@ -1312,6 +1459,19 @@ select,
 
   .add-story__form {
     padding: 20px;
+  }
+
+  .add-story__photo-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .add-story__camera-tools-buttons {
+    flex-direction: column;
+  }
+
+  .add-story__camera-capture-btn,
+  .add-story__camera-close-btn {
+    width: 100%;
   }
 }
 
@@ -1393,6 +1553,16 @@ select,
   opacity: 1;
   transition: all 0.3s ease;
   pointer-events: none;
+}
+
+.auth__input--textarea {
+  resize: none;
+  overflow-y: hidden;
+  min-height: calc(1.5em + 16px);
+  max-height: calc(5 * 1.5em + 16px);
+  line-height: 1.5;
+  font-family: "DM Sans", sans-serif;
+  font-size: 16px !important;
 }
 
 .auth__input {

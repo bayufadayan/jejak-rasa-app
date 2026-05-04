@@ -1,3 +1,4 @@
+import { createIcons, icons } from 'lucide';
 import '../../components/back-link.js';
 import '../../components/field-group.js';
 import '../../components/my-toast.js';
@@ -6,7 +7,18 @@ import * as API from '../../data/api.js';
 
 export default class AddStoryPage {
   #presenter = null;
-  #photoPreview = null;
+  #photoBlob = null;
+  #photoFile = null;
+  #photoPreviewCanvas = null;
+  #photoPreviewEmpty = null;
+  #cameraPanel = null;
+  #cameraVideo = null;
+  #cameraSelect = null;
+  #cameraOpenButton = null;
+  #cameraCaptureButton = null;
+  #cameraCloseButton = null;
+  #cameraStream = null;
+  #isCameraOpen = false;
 
   async render() {
     return /* html */ `
@@ -24,13 +36,40 @@ export default class AddStoryPage {
           <div class="add-story__layout">
             <article class="add-story__form-card">
               <form class="add-story__form">
-                <field-group type="textarea" id="description" label="Deskripsi cerita" required></field-group>
+                <field-group type="textarea" id="description" label="Deskripsi cerita" placeholder="Tulis deskripsi cerita Anda di sini..." required></field-group>
 
                 <div class="add-story__photo-group">
-                  <label for="photo" class="add-story__photo-label">Foto cerita <span class="add-story__required">*</span></label>
-                  <input type="file" id="photo" accept="image/*" class="add-story__photo-input" required />
-                  <div id="photo-preview" class="add-story__photo-preview"></div>
-                  <p class="add-story__photo-hint">Format: JPG, PNG, GIF. Ukuran maksimal: 1MB</p>
+                  <p class="add-story__photo-label">Foto cerita <span class="add-story__required">*</span></p>
+                  <div class="add-story__photo-actions">
+                    <input type="file" id="photo-gallery-input" accept="image/*" hidden />
+                    <button type="button" class="add-story__photo-action-btn add-story__photo-action-btn--gallery" id="photo-gallery-button">
+                      <i data-lucide="images" aria-hidden="true"></i>
+                      <span>Pilih dari Gallery</span>
+                    </button>
+                    <button type="button" class="add-story__photo-action-btn add-story__photo-action-btn--camera" id="photo-camera-button">
+                      <i data-lucide="camera" aria-hidden="true"></i>
+                      <span>Ambil dari Kamera</span>
+                    </button>
+                  </div>
+                  <div class="add-story__camera-panel" id="camera-panel" hidden>
+                    <select id="camera-select" class="add-story__camera-select"></select>
+                    <div class="add-story__camera-view">
+                      <video id="camera-video" class="add-story__camera-video" playsinline muted>Video stream not available.</video>
+                    </div>
+                    <div class="add-story__camera-tools">
+                      <div class="add-story__camera-tools-buttons">
+                        <button type="button" class="add-story__camera-capture-btn" id="camera-capture-button">Ambil Gambar</button>
+                        <button type="button" class="add-story__camera-close-btn" id="camera-close-button">Tutup Kamera</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="photo-preview" class="add-story__photo-preview">
+                    <canvas id="photo-preview-canvas" class="add-story__photo-preview-canvas" hidden></canvas>
+                    <div id="photo-preview-empty" class="add-story__photo-preview-empty">
+                      <p>Foto akan tampil di sini</p>
+                    </div>
+                  </div>
+                  <p class="add-story__photo-hint">Gunakan gallery untuk memilih file, atau kamera untuk menangkap foto langsung. Hasilnya akan diproses lewat Canvas API.</p>
                 </div>
 
                 <div class="add-story__coordinates-group">
@@ -39,8 +78,8 @@ export default class AddStoryPage {
                     <button type="button" class="add-story__clear-coords-btn" id="clear-coords-btn">Hapus lokasi</button>
                   </div>
 
-                  <field-group type="number" id="latitude" label="Latitude" step="0.0001"></field-group>
-                  <field-group type="number" id="longitude" label="Longitude" step="0.0001"></field-group>
+                  <field-group type="number" id="latitude" label="Latitude" step="0.0001" placeholder="Masukkan latitude..."></field-group>
+                  <field-group type="number" id="longitude" label="Longitude" step="0.0001" placeholder="Masukkan longitude..."></field-group>
 
                   <div class="add-story__map-card" id="map-preview">
                     <div class="add-story__map-surface">
@@ -55,7 +94,7 @@ export default class AddStoryPage {
 
             <aside class="add-story__preview-panel">
               <div class="add-story__preview-card">
-                <p class="add-story__preview-label">Preview cerita</p>
+                <p class="add-story__preview-label  ">Preview cerita</p>
                 <div id="preview-figure" class="add-story__preview-figure" style="display: none;">
                   <img id="preview-image" src="" alt="" />
                 </div>
@@ -85,8 +124,10 @@ export default class AddStoryPage {
     });
 
     this.#setupForm();
+    this.#setupPhotoTools();
     this.#setupPhotoPreview();
     this.#setupCoordinatesClear();
+    createIcons({ icons });
   }
 
   #setupForm() {
@@ -95,18 +136,17 @@ export default class AddStoryPage {
       event.preventDefault();
 
       const description = document.querySelector('#description textarea').value;
-      const photoInput = document.querySelector('#photo');
       const latitudeInput = document.querySelector('#latitude input');
       const longitudeInput = document.querySelector('#longitude input');
 
-      if (!description || !photoInput.files[0]) {
+      if (!description || !this.#photoFile) {
         this.showToast('error', 'Deskripsi dan foto harus diisi');
         return;
       }
 
       const data = {
         description,
-        photo: photoInput.files[0],
+        photo: this.#photoFile,
         lat: latitudeInput.value ? parseFloat(latitudeInput.value) : null,
         lon: longitudeInput.value ? parseFloat(longitudeInput.value) : null,
       };
@@ -115,35 +155,300 @@ export default class AddStoryPage {
     });
   }
 
+  #setupPhotoTools() {
+    const galleryInput = document.querySelector('#photo-gallery-input');
+    const galleryButton = document.querySelector('#photo-gallery-button');
+    this.#cameraPanel = document.querySelector('#camera-panel');
+    this.#cameraVideo = document.querySelector('#camera-video');
+    this.#cameraSelect = document.querySelector('#camera-select');
+    this.#cameraOpenButton = document.querySelector('#photo-camera-button');
+    this.#cameraCaptureButton = document.querySelector('#camera-capture-button');
+    this.#cameraCloseButton = document.querySelector('#camera-close-button');
+
+    this.#cameraPanel.hidden = true;
+
+    galleryButton.addEventListener('click', () => {
+      galleryInput.click();
+    });
+
+    galleryInput.addEventListener('change', async (event) => {
+      const file = event.target.files?.[0];
+
+      if (!file) {
+        return;
+      }
+
+      try {
+        await this.#updatePhotoPreviewFromFile(file);
+      } catch (error) {
+        console.error('#setupPhotoTools gallery error:', error);
+        this.showToast('error', 'Foto dari gallery gagal diproses');
+      } finally {
+        event.target.value = '';
+      }
+    });
+
+    this.#cameraOpenButton.addEventListener('click', async () => {
+      if (this.#isCameraOpen) {
+        await this.#closeCameraPanel();
+        return;
+      }
+
+      await this.#openCameraPanel();
+    });
+
+    this.#cameraCaptureButton.addEventListener('click', async () => {
+      try {
+        await this.#capturePhotoFromCamera();
+      } catch (error) {
+        console.error('#setupPhotoTools capture error:', error);
+        this.showToast('error', 'Gagal mengambil gambar dari kamera');
+      }
+    });
+
+    this.#cameraCloseButton.addEventListener('click', async () => {
+      await this.#closeCameraPanel();
+    });
+
+    this.#cameraSelect.addEventListener('change', async () => {
+      if (!this.#isCameraOpen) {
+        return;
+      }
+
+      await this.#startCamera();
+    });
+
+    this.#resetPhotoPreview();
+  }
+
   #setupPhotoPreview() {
-    const photoInput = document.querySelector('#photo');
+    const descriptionTextarea = document.querySelector('#description textarea');
+    const previewDesc = document.querySelector('#preview-desc');
+
+    descriptionTextarea.addEventListener('input', (event) => {
+      previewDesc.textContent = event.target.value || 'Deskripsi akan tampil di sini';
+    });
+  }
+
+  async #openCameraPanel() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      this.showToast('error', 'Browser tidak mendukung kamera');
+      return;
+    }
+
+    this.#cameraPanel.hidden = false;
+    this.#isCameraOpen = true;
+    this.#cameraOpenButton.innerHTML = 'Tutup Kamera';
+    createIcons({ icons });
+
+    const started = await this.#startCamera();
+    if (!started) {
+      await this.#closeCameraPanel();
+    }
+  }
+
+  async #closeCameraPanel() {
+    await this.#stopCamera();
+    this.#cameraPanel.hidden = true;
+    this.#isCameraOpen = false;
+    this.#cameraOpenButton.innerHTML = this.#getCameraButtonContent();
+    createIcons({ icons });
+  }
+
+  async #startCamera() {
+    await this.#stopCamera();
+
+    const deviceId = this.#cameraSelect.value ? { exact: this.#cameraSelect.value } : undefined;
+
+    try {
+      this.#cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          aspectRatio: 4 / 3,
+          deviceId,
+        },
+      });
+
+      this.#cameraVideo.srcObject = this.#cameraStream;
+      await this.#cameraVideo.play();
+      await this.#populateCameraDeviceList(this.#cameraStream);
+
+      return true;
+    } catch (error) {
+      console.error('#startCamera error:', error);
+      this.showToast('error', 'Kamera tidak dapat dibuka');
+      await this.#stopCamera();
+
+      return false;
+    }
+  }
+
+  async #stopCamera() {
+    if (this.#cameraVideo) {
+      this.#cameraVideo.pause();
+      this.#cameraVideo.srcObject = null;
+    }
+
+    if (this.#cameraStream) {
+      this.#cameraStream.getTracks().forEach((track) => track.stop());
+      this.#cameraStream = null;
+    }
+  }
+
+  async #populateCameraDeviceList(stream) {
+    if (!(stream instanceof MediaStream)) {
+      return;
+    }
+
+    const { deviceId } = stream.getVideoTracks()[0].getSettings();
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter((device) => device.kind === 'videoinput');
+
+    const html = cameras.reduce((accumulator, device, currentIndex) => {
+      return accumulator.concat(`
+        <option value="${device.deviceId}" ${deviceId === device.deviceId ? 'selected' : ''}>
+          ${device.label || `Camera ${currentIndex + 1}`}
+        </option>
+      `);
+    }, '');
+
+    this.#cameraSelect.innerHTML = html;
+  }
+
+  async #capturePhotoFromCamera() {
+    if (!this.#cameraVideo?.videoWidth || !this.#cameraVideo?.videoHeight) {
+      this.showToast('error', 'Kamera belum siap, coba lagi sebentar');
+      return;
+    }
+
+    await this.#renderSourceToPreview(this.#cameraVideo, this.#cameraVideo.videoWidth, this.#cameraVideo.videoHeight, `camera-${Date.now()}.jpg`);
+  }
+
+  async #updatePhotoPreviewFromFile(file) {
+    const image = await this.#loadImage(file);
+    const filename = this.#normalizeFilename(file.name || `gallery-${Date.now()}.jpg`);
+
+    await this.#renderSourceToPreview(image, image.naturalWidth, image.naturalHeight, filename);
+  }
+
+  #loadImage(file) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      const objectUrl = URL.createObjectURL(file);
+
+      image.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(image);
+      };
+
+      image.onerror = (error) => {
+        URL.revokeObjectURL(objectUrl);
+        reject(error);
+      };
+
+      image.src = objectUrl;
+    });
+  }
+
+  async #renderSourceToPreview(source, sourceWidth, sourceHeight, filename) {
+    const canvas = this.#photoPreviewCanvas;
+    const context = canvas.getContext('2d');
+    const targetWidth = 1280;
+    const targetHeight = 800;
+
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+
+    context.fillStyle = '#f8ecd8';
+    context.fillRect(0, 0, targetWidth, targetHeight);
+
+    const sourceRatio = sourceWidth / sourceHeight;
+    const targetRatio = targetWidth / targetHeight;
+
+    let drawWidth = targetWidth;
+    let drawHeight = targetHeight;
+    let drawX = 0;
+    let drawY = 0;
+
+    if (sourceRatio > targetRatio) {
+      drawHeight = targetHeight;
+      drawWidth = drawHeight * sourceRatio;
+      drawX = (targetWidth - drawWidth) / 2;
+    } else {
+      drawWidth = targetWidth;
+      drawHeight = drawWidth / sourceRatio;
+      drawY = (targetHeight - drawHeight) / 2;
+    }
+
+    context.drawImage(source, drawX, drawY, drawWidth, drawHeight);
+
+    const blob = await this.#canvasToBlob(canvas);
+    if (!blob) {
+      throw new Error('Canvas snapshot failed');
+    }
+
+    this.#photoBlob = blob;
+    this.#photoFile = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+    this.#showPhotoPreview();
+  }
+
+  #canvasToBlob(canvas) {
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.92);
+    });
+  }
+
+  #normalizeFilename(filename) {
+    const baseName = filename.replace(/\.[^.]+$/, '') || 'story-photo';
+    return `${baseName}.jpg`;
+  }
+
+  #resetPhotoPreview() {
+    this.#photoBlob = null;
+    this.#photoFile = null;
+
+    if (!this.#photoPreviewCanvas) {
+      this.#photoPreviewCanvas = document.querySelector('#photo-preview-canvas');
+    }
+
+    if (!this.#photoPreviewEmpty) {
+      this.#photoPreviewEmpty = document.querySelector('#photo-preview-empty');
+    }
+
+    const context = this.#photoPreviewCanvas.getContext('2d');
+    this.#photoPreviewCanvas.width = 1280;
+    this.#photoPreviewCanvas.height = 800;
+    context.fillStyle = '#f8ecd8';
+    context.fillRect(0, 0, this.#photoPreviewCanvas.width, this.#photoPreviewCanvas.height);
+
+    this.#photoPreviewCanvas.hidden = true;
+    this.#photoPreviewEmpty.hidden = false;
+
+    const previewFigure = document.querySelector('#preview-figure');
+    const previewEmpty = document.querySelector('#preview-empty');
+    previewFigure.style.display = 'none';
+    previewEmpty.hidden = false;
+  }
+
+  #getCameraButtonContent() {
+    return `
+      <i data-lucide="camera" aria-hidden="true"></i>
+      <span>Ambil dari Kamera</span>
+    `;
+  }
+
+  #showPhotoPreview() {
     const previewFigure = document.querySelector('#preview-figure');
     const previewEmpty = document.querySelector('#preview-empty');
     const previewImage = document.querySelector('#preview-image');
 
-    photoInput.addEventListener('change', (event) => {
-      const file = event.target.files[0];
+    this.#photoPreviewCanvas.hidden = false;
+    this.#photoPreviewEmpty.hidden = true;
 
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          previewImage.src = e.target.result;
-          previewImage.alt = 'Preview foto cerita';
-          previewFigure.style.display = 'block';
-          previewEmpty.style.display = 'none';
-        };
-        reader.readAsDataURL(file);
-      } else {
-        previewFigure.style.display = 'none';
-        previewEmpty.style.display = 'block';
-      }
-    });
-
-    const descriptionTextarea = document.querySelector('#description textarea');
-    descriptionTextarea.addEventListener('input', (event) => {
-      const previewDesc = document.querySelector('#preview-desc');
-      previewDesc.textContent = event.target.value || 'Deskripsi akan tampil di sini';
-    });
+    const dataUrl = this.#photoPreviewCanvas.toDataURL('image/jpeg', 0.92);
+    previewImage.src = dataUrl;
+    previewImage.alt = 'Preview foto cerita';
+    previewFigure.style.display = 'block';
+    previewEmpty.hidden = true;
   }
 
   #setupCoordinatesClear() {
