@@ -1,3 +1,4 @@
+import '../../components/back-link.js';
 import { getStoryById } from '../../data/story-data.js';
 import { parseActivePathname } from '../../routes/url-parser.js';
 
@@ -12,7 +13,7 @@ export default class StoryDetailPage {
           <div class="story-detail__empty">
             <p class="story-detail__eyebrow">Cerita tidak ditemukan</p>
             <h1 class="story-detail__title">Detail cerita yang kamu cari belum tersedia.</h1>
-            <a class="story-detail__back-link" href="#/">Kembali ke beranda</a>
+            <app-back-link class="story-detail__back-link" href="#/"></app-back-link>
           </div>
         </section>
       `;
@@ -22,7 +23,7 @@ export default class StoryDetailPage {
       <section class="story-detail container">
         <div class="story-detail__shell">
           <header class="story-detail__hero">
-            <a class="story-detail__back-link" href="#/">Kembali ke beranda</a>
+            <app-back-link class="story-detail__back-link" href="#/"></app-back-link>
             <p class="story-detail__eyebrow">Detail Cerita</p>
             <h1 class="story-detail__title">${story.title}</h1>
             <p class="story-detail__description">${story.detail}</p>

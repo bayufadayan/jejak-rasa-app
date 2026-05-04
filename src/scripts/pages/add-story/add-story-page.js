@@ -1,3 +1,4 @@
+import '../../components/back-link.js';
 import '../../components/field-group.js';
 import '../../components/my-toast.js';
 import AddStoryPresenter from './add-story-presenter.js';
@@ -12,7 +13,7 @@ export default class AddStoryPage {
       <section class="container add-story">
         <div class="add-story__shell">
           <header class="add-story__header">
-            <a class="add-story__back-link" href="#/">Kembali ke beranda</a>
+            <app-back-link href="#/"></app-back-link>
             <div>
               <p class="add-story__eyebrow">Bagikan cerita</p>
               <h1 class="add-story__title">Buat cerita baru</h1>
@@ -23,7 +24,7 @@ export default class AddStoryPage {
           <div class="add-story__layout">
             <article class="add-story__form-card">
               <form class="add-story__form">
-                <field-group type="textarea" id="description" label="Deskripsi cerita" placeholder="Cerita apa yang ingin Anda bagikan?" required></field-group>
+                <field-group type="textarea" id="description" label="Deskripsi cerita" required></field-group>
 
                 <div class="add-story__photo-group">
                   <label for="photo" class="add-story__photo-label">Foto cerita <span class="add-story__required">*</span></label>
@@ -38,8 +39,8 @@ export default class AddStoryPage {
                     <button type="button" class="add-story__clear-coords-btn" id="clear-coords-btn">Hapus lokasi</button>
                   </div>
 
-                  <field-group type="number" id="latitude" label="Latitude" placeholder="-6.2088" step="0.0001"></field-group>
-                  <field-group type="number" id="longitude" label="Longitude" placeholder="106.8456" step="0.0001"></field-group>
+                  <field-group type="number" id="latitude" label="Latitude" step="0.0001"></field-group>
+                  <field-group type="number" id="longitude" label="Longitude" step="0.0001"></field-group>
 
                   <div class="add-story__map-card" id="map-preview">
                     <div class="add-story__map-surface">

@@ -4,7 +4,7 @@ export default class HomePage {
   async render() {
     const featuredStories = storyList.slice(0, 6);
 
-    return `
+    return /* html */`
       <section class="home container">
         <div class="home__shell">
           <section class="home__map-panel" aria-label="Peta Jejak Rasa">

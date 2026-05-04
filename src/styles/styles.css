@@ -837,10 +837,29 @@ select,
 }
 
 .story-detail__back-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: fit-content;
+  padding: 0.55rem 0.9rem;
   color: #b5512e;
   font-weight: 700;
+  line-height: 1;
   text-decoration: none;
+  border-radius: 0;
+  border: 1px solid rgba(181, 81, 46, 0.18);
+  background: rgba(255, 248, 236, 0.7);
+  transition: background-color 0.2s ease;
+}
+
+.story-detail__back-link:hover {
+  background-color: rgba(181, 81, 46, 0.1);
+}
+
+.story-detail__back-link svg {
+  width: 18px;
+  height: 18px;
 }
 
 .story-detail__eyebrow {
@@ -1049,10 +1068,30 @@ select,
 }
 
 .add-story__back-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: fit-content;
+  padding: 0.55rem 0.9rem;
   color: #b5512e;
   font-weight: 700;
+  line-height: 1;
   text-decoration: none;
+  border-radius: 0;
+  border: 1px solid rgba(181, 81, 46, 0.18);
+  background: rgba(255, 248, 236, 0.7);
+  transition: background-color 0.2s ease;
+  margin-bottom: 12px;
+}
+
+.add-story__back-link:hover {
+  background-color: rgba(181, 81, 46, 0.1);
+}
+
+.add-story__back-link svg {
+  width: 18px;
+  height: 18px;
 }
 
 .add-story__eyebrow {
@@ -1368,6 +1407,15 @@ select,
   margin-bottom: 4px;
 }
 
+.auth__input::placeholder {
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.auth__input:focus::placeholder {
+  opacity: 1;
+}
+
 .auth__input:focus+.auth__label,
 .auth__input:not(:placeholder-shown)+.auth__label {
   top: 0;
@@ -1456,6 +1504,7 @@ select,
   border-radius: 0;
   color: white;
   padding: 2px;
+  border-radius: 100%;
 }
 
 .toast__content {

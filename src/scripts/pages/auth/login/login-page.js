@@ -28,8 +28,8 @@ export default class LoginPage {
                     </header>
 
                     <form class="auth__form">
-                        <field-group type="email" id="email" label="Email"></field-group>
-                        <field-group type="password" id="password" label="Password"></field-group>
+                        <field-group type="email" id="email" label="Email" placeholder="email.kamu@domain.com"></field-group>
+                        <field-group type="password" id="password" label="Password" placeholder="********"></field-group>
 
                         <button type="submit" class="main__btn">Masuk</button>
                         <p>Belum punya akun? <a href="/#/register" class="auth__link">Daftar disini</a></p>
