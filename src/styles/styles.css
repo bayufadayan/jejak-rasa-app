@@ -1819,7 +1819,7 @@ html[data-view-transition-direction='backward']::view-transition-new(main-conten
 }
 
 .toast__container {
-  position: absolute;
+  position: fixed;
   top: 40px;
   right: 32px;
   display: flex;
