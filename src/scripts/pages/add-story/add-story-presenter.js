@@ -7,6 +7,19 @@ export default class AddStoryPresenter {
     this.#model = model;
   }
 
+  async showAddStoryMap() {
+    this.#view.showMapLoading();
+
+    try {
+      await this.#view.initialMap();
+    } catch (error) {
+      console.error('showAddStoryMap: error:', error);
+      this.#view.showToast('error', 'Peta gagal dimuat');
+    } finally {
+      this.#view.hideMapLoading();
+    }
+  }
+
   async addStory({ description, photo, lat, lon }) {
     this.#view.showLoading(true);
 

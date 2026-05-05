@@ -1,9 +1,11 @@
 import { createIcons, icons } from 'lucide';
+import 'leaflet/dist/leaflet.css';
 import '../../components/back-link.js';
 import '../../components/field-group.js';
 import '../../components/my-toast.js';
 import AddStoryPresenter from './add-story-presenter.js';
 import * as API from '../../data/api.js';
+import Map from '../../utils/map.js';
 
 export default class AddStoryPage {
   #presenter = null;
@@ -19,6 +21,9 @@ export default class AddStoryPage {
   #cameraCloseButton = null;
   #cameraStream = null;
   #isCameraOpen = false;
+  #map = null;
+  #mapMarker = null;
+  #mapSearchDebounce = null;
 
   async render() {
     return /* html */ `
@@ -36,6 +41,11 @@ export default class AddStoryPage {
           <div class="add-story__layout">
             <article class="add-story__form-card">
               <form class="add-story__form">
+                <div class="add-story__form-intro">
+                  <p class="add-story__form-intro-eyebrow">Isi Form Cerita</p>
+                  <p class="add-story__form-intro-text">Lengkapi deskripsi, foto, dan lokasi agar cerita yang dibagikan lebih jelas dan informatif.</p>
+                </div>
+
                 <field-group type="textarea" id="description" label="Deskripsi cerita" placeholder="Tulis deskripsi cerita Anda di sini..." required></field-group>
 
                 <div class="add-story__photo-group">
@@ -81,9 +91,22 @@ export default class AddStoryPage {
                   <field-group type="number" id="latitude" label="Latitude" step="0.0001" placeholder="Masukkan latitude..."></field-group>
                   <field-group type="number" id="longitude" label="Longitude" step="0.0001" placeholder="Masukkan longitude..."></field-group>
 
-                  <div class="add-story__map-card" id="map-preview">
-                    <div class="add-story__map-surface">
-                      <span class="add-story__map-text">Klik untuk memilih lokasi di peta (fitur mendatang)</span>
+                  <div class="add-story__map-toolbar">
+                    <div class="add-story__map-search">
+                      <label for="map-search-input" class="add-story__map-search-label">Cari tempat</label>
+                      <input id="map-search-input" type="search" class="add-story__map-search-input" placeholder="Contoh: Monas, Jakarta" autocomplete="off" />
+                      <ul id="map-search-results" class="add-story__map-search-results" hidden></ul>
+                    </div>
+                    <div class="add-story__map-zoom-tools" role="group" aria-label="Kontrol zoom peta">
+                      <button type="button" id="map-zoom-out" class="add-story__map-zoom-btn">-</button>
+                      <button type="button" id="map-zoom-in" class="add-story__map-zoom-btn">+</button>
+                    </div>
+                  </div>
+
+                  <div class="add-story__map-card">
+                    <div class="add-story__map-surface" id="add-story-map"></div>
+                    <div class="add-story__map-loading" id="add-story-map-loading" hidden>
+                      <span class="add-story__map-text">Memuat peta...</span>
                     </div>
                   </div>
                 </div>
@@ -127,7 +150,240 @@ export default class AddStoryPage {
     this.#setupPhotoTools();
     this.#setupPhotoPreview();
     this.#setupCoordinatesClear();
+    this.#setupCoordinateInputs();
+    this.#setupMapToolbar();
+    await this.#presenter.showAddStoryMap();
     createIcons({ icons });
+  }
+
+  async initialMap() {
+    this.#map = await Map.build('#add-story-map', {
+      zoom: 13,
+      locate: true,
+      scrollWheelZoom: true,
+      zoomControl: false,
+    });
+
+    this.#map.invalidateSize();
+
+    const center = this.#map.getCenter();
+    this.#placeMarker(center.latitude, center.longitude, false);
+
+    this.#mapMarker = this.#map.addMarker([center.latitude, center.longitude], {
+      draggable: true,
+    });
+
+    this.#mapMarker.addEventListener('move', (event) => {
+      const { lat, lng } = event.target.getLatLng();
+      this.#updateCoordinateInputs(lat, lng);
+    });
+
+    this.#map.addMapEventListener('click', (event) => {
+      const { lat, lng } = event.latlng;
+      this.#placeMarker(lat, lng);
+    });
+  }
+
+  #setupMapToolbar() {
+    const zoomInButton = document.querySelector('#map-zoom-in');
+    const zoomOutButton = document.querySelector('#map-zoom-out');
+    const searchInput = document.querySelector('#map-search-input');
+    const searchResults = document.querySelector('#map-search-results');
+
+    zoomInButton.addEventListener('click', () => {
+      if (!this.#map) {
+        return;
+      }
+      this.#map.zoomIn();
+    });
+
+    zoomOutButton.addEventListener('click', () => {
+      if (!this.#map) {
+        return;
+      }
+      this.#map.zoomOut();
+    });
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(this.#mapSearchDebounce);
+
+      this.#mapSearchDebounce = setTimeout(async () => {
+        await this.#handleMapSearch(searchInput.value);
+      }, 350);
+    });
+
+    searchResults.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+
+      const clickedElement = event.target instanceof Element ? event.target : null;
+      const resultButton = clickedElement?.closest('button[data-lat][data-lng]');
+
+      if (!resultButton) {
+        return;
+      }
+
+      const latitude = Number.parseFloat(resultButton.dataset.lat || '');
+      const longitude = Number.parseFloat(resultButton.dataset.lng || '');
+
+      if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+        this.showToast('error', 'Koordinat lokasi tidak valid');
+        return;
+      }
+
+      this.#placeMarker(latitude, longitude);
+      searchInput.value = resultButton.dataset.label || resultButton.textContent.trim();
+      this.#renderMapSearchResults([]);
+    });
+
+    searchInput.addEventListener('blur', () => {
+      setTimeout(() => {
+        this.#renderMapSearchResults([]);
+      }, 120);
+    });
+
+    searchInput.addEventListener('focus', () => {
+      if (!searchInput.value.trim()) {
+        return;
+      }
+
+      this.#handleMapSearch(searchInput.value);
+    });
+
+    searchInput.addEventListener('search', () => {
+      this.#renderMapSearchResults([]);
+    });
+  }
+
+  async #handleMapSearch(query) {
+    if (!this.#map) {
+      return;
+    }
+
+    if (!query.trim()) {
+      this.#renderMapSearchResults([]);
+      return;
+    }
+
+    try {
+      const results = await this.#map.searchPlaces(query);
+      this.#renderMapSearchResults(results.slice(0, 5));
+    } catch (error) {
+      console.error('#handleMapSearch error:', error);
+      this.#renderMapSearchResults([]);
+    }
+  }
+
+  #renderMapSearchResults(results) {
+    const searchResults = document.querySelector('#map-search-results');
+
+    if (!results.length) {
+      searchResults.hidden = true;
+      searchResults.innerHTML = '';
+      return;
+    }
+
+    searchResults.innerHTML = results
+      .map((result) => {
+        const latitude = this.#extractResultLatitude(result);
+        const longitude = this.#extractResultLongitude(result);
+
+        if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+          return '';
+        }
+
+        const label = result.label || 'Lokasi tanpa nama';
+        const safeLabel = this.#escapeHtml(label);
+        return `
+          <li>
+            <button
+              type="button"
+              class="add-story__map-search-result-btn"
+              data-lat="${latitude}"
+              data-lng="${longitude}"
+              data-label="${label.replace(/"/g, '&quot;')}"
+            >
+              ${safeLabel}
+            </button>
+          </li>
+        `;
+      })
+      .join('');
+
+    searchResults.hidden = false;
+  }
+
+  #placeMarker(latitude, longitude, shouldFly = true) {
+    if (!this.#mapMarker || !this.#map) {
+      this.#updateCoordinateInputs(latitude, longitude);
+      return;
+    }
+
+    this.#mapMarker.setLatLng([latitude, longitude]);
+    this.#updateCoordinateInputs(latitude, longitude);
+
+    if (shouldFly) {
+      this.#map.flyTo([latitude, longitude]);
+    }
+  }
+
+  #escapeHtml(text) {
+    return text
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  #extractResultLatitude(result) {
+    return Number.parseFloat(
+      result?.y
+      ?? result?.lat
+      ?? result?.latitude
+      ?? result?.raw?.lat
+      ?? result?.raw?.latitude
+      ?? '',
+    );
+  }
+
+  #extractResultLongitude(result) {
+    return Number.parseFloat(
+      result?.x
+      ?? result?.lng
+      ?? result?.lon
+      ?? result?.longitude
+      ?? result?.raw?.lon
+      ?? result?.raw?.lng
+      ?? result?.raw?.longitude
+      ?? '',
+    );
+  }
+
+  #setupCoordinateInputs() {
+    const latitudeInput = document.querySelector('#latitude input');
+    const longitudeInput = document.querySelector('#longitude input');
+
+    const moveMarkerByInput = () => {
+      const latitude = parseFloat(latitudeInput.value);
+      const longitude = parseFloat(longitudeInput.value);
+
+      if (Number.isNaN(latitude) || Number.isNaN(longitude) || !this.#mapMarker || !this.#map) {
+        return;
+      }
+
+      this.#placeMarker(latitude, longitude);
+    };
+
+    latitudeInput.addEventListener('change', moveMarkerByInput);
+    longitudeInput.addEventListener('change', moveMarkerByInput);
+  }
+
+  #updateCoordinateInputs(latitude, longitude) {
+    const latitudeInput = document.querySelector('#latitude input');
+    const longitudeInput = document.querySelector('#longitude input');
+
+    latitudeInput.value = Number(latitude).toFixed(6);
+    longitudeInput.value = Number(longitude).toFixed(6);
   }
 
   #setupForm() {
@@ -461,6 +717,16 @@ export default class AddStoryPage {
       latInput.value = '';
       lonInput.value = '';
     });
+  }
+
+  showMapLoading() {
+    const mapLoading = document.querySelector('#add-story-map-loading');
+    mapLoading.hidden = false;
+  }
+
+  hideMapLoading() {
+    const mapLoading = document.querySelector('#add-story-map-loading');
+    mapLoading.hidden = true;
   }
 
   showLoading(isLoading) {

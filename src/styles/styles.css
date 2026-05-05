@@ -1138,6 +1138,28 @@ select,
   gap: 20px;
 }
 
+.add-story__form-intro {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid #ead7bd;
+  background: rgba(255, 248, 236, 0.72);
+}
+
+.add-story__form-intro-eyebrow {
+  color: #b5512e;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.add-story__form-intro-text {
+  color: #6d5a4a;
+  font-size: 0.93rem;
+  line-height: 1.55;
+}
+
 .add-story__photo-group,
 .add-story__coordinates-group {
   display: flex;
@@ -1362,27 +1384,138 @@ select,
 }
 
 .add-story__map-card {
+  position: relative;
   overflow: hidden;
 }
 
-.add-story__map-surface {
-  position: relative;
-  min-height: 240px;
-  background:
-    radial-gradient(circle at 40% 35%, rgba(255, 197, 111, 0.6) 0 12px, transparent 13px),
-    radial-gradient(circle at 70% 25%, rgba(181, 81, 46, 0.5) 0 16px, transparent 17px),
-    linear-gradient(135deg, rgba(179, 95, 50, 0.08), rgba(255, 255, 255, 0.0)),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.15));
+.add-story__map-toolbar {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 20px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.add-story__map-search {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  flex: 1;
+}
+
+.add-story__map-search-label {
+  color: #6d5a4a;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.add-story__map-search-input {
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #d8b893;
+  background: #fff;
+  color: #2d2118;
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.add-story__map-search-input:focus {
+  outline: none;
+  border-color: #b5512e;
+  box-shadow: 0 0 0 3px rgba(181, 81, 46, 0.16);
+}
+
+.add-story__map-search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 401;
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid #ead7bd;
+  background: #fffefb;
+  box-shadow: 0 14px 24px rgba(93, 60, 32, 0.14);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.add-story__map-search-result-btn {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0.6rem 0.7rem;
+  text-align: left;
+  color: #2d2118;
+  font-family: "DM Sans", sans-serif;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.add-story__map-search-result-btn:hover {
+  background: rgba(181, 81, 46, 0.12);
+}
+
+.add-story__map-zoom-tools {
+  display: inline-flex;
+  border: 1px solid #d8b893;
+  background: #fff;
+  box-shadow: 0 8px 14px rgba(93, 60, 32, 0.1);
+}
+
+.add-story__map-zoom-btn {
+  width: 42px;
+  height: 42px;
+  border: none;
+  background: transparent;
+  color: #2d2118;
+  font-family: "Figtree", sans-serif;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.add-story__map-zoom-btn:hover {
+  background: rgba(181, 81, 46, 0.12);
+}
+
+.add-story__map-zoom-btn + .add-story__map-zoom-btn {
+  border-left: 1px solid #ead7bd;
+}
+
+.add-story__map-surface {
+  min-height: 340px;
+  width: 100%;
+  z-index: 1;
+}
+
+.add-story__map-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 250, 242, 0.72);
+  backdrop-filter: blur(1px);
+  z-index: 350;
+}
+
+.add-story__map-loading[hidden] {
+  display: none;
 }
 
 .add-story__map-text {
   color: #8f7a67;
   font-weight: 600;
+}
+
+.add-story__map-surface .leaflet-control-attribution {
+  font-size: 0.7rem;
 }
 
 .add-story__submit-btn {
@@ -1472,6 +1605,18 @@ select,
   .add-story__camera-capture-btn,
   .add-story__camera-close-btn {
     width: 100%;
+  }
+
+  .add-story__map-toolbar {
+    flex-direction: column;
+  }
+
+  .add-story__map-zoom-tools {
+    width: 100%;
+  }
+
+  .add-story__map-zoom-btn {
+    width: 50%;
   }
 }
 
