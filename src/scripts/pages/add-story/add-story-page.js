@@ -80,6 +80,7 @@ export default class AddStoryPage {
                     </div>
                   </div>
                   <p class="add-story__photo-hint">Gunakan gallery untuk memilih file, atau kamera untuk menangkap foto langsung. Hasilnya akan diproses lewat Canvas API.</p>
+                  <p id="photo-error-message" class="auth__field-error-message add-story__field-error-message"></p>
                 </div>
 
                 <div class="add-story__coordinates-group">
@@ -88,8 +89,8 @@ export default class AddStoryPage {
                     <button type="button" class="add-story__clear-coords-btn" id="clear-coords-btn">Hapus lokasi</button>
                   </div>
 
-                  <field-group type="number" id="latitude" label="Latitude" step="0.0001" placeholder="Masukkan latitude..."></field-group>
-                  <field-group type="number" id="longitude" label="Longitude" step="0.0001" placeholder="Masukkan longitude..."></field-group>
+                  <field-group type="number" id="latitude" label="Latitude" step="any" placeholder="Masukkan latitude..."></field-group>
+                  <field-group type="number" id="longitude" label="Longitude" step="any" placeholder="Masukkan longitude..."></field-group>
 
                   <div class="add-story__map-toolbar">
                     <div class="add-story__map-search">
@@ -151,6 +152,7 @@ export default class AddStoryPage {
     this.#setupPhotoPreview();
     this.#setupCoordinatesClear();
     this.#setupCoordinateInputs();
+    this.#setupLiveValidation();
     this.#setupMapToolbar();
     await this.#presenter.showAddStoryMap();
     createIcons({ icons });
@@ -391,23 +393,53 @@ export default class AddStoryPage {
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
 
-      const description = document.querySelector('#description textarea').value;
+      const description = document.querySelector('#description textarea').value.trim();
       const latitudeInput = document.querySelector('#latitude input');
       const longitudeInput = document.querySelector('#longitude input');
 
-      if (!description || !this.#photoFile) {
-        this.showToast('error', 'Deskripsi dan foto harus diisi');
+      const validation = this.#validateStoryForm({
+        description,
+        photoFile: this.#photoFile,
+        latitudeValue: latitudeInput.value,
+        longitudeValue: longitudeInput.value,
+      });
+
+      if (!validation.isValid) {
         return;
       }
 
       const data = {
-        description,
-        photo: this.#photoFile,
-        lat: latitudeInput.value ? parseFloat(latitudeInput.value) : null,
-        lon: longitudeInput.value ? parseFloat(longitudeInput.value) : null,
+        description: validation.description,
+        photo: validation.photoFile,
+        lat: validation.latitude,
+        lon: validation.longitude,
       };
 
       await this.#presenter.addStory(data);
+    });
+  }
+
+  #setupLiveValidation() {
+    const descriptionTextarea = document.querySelector('#description textarea');
+    const latitudeInput = document.querySelector('#latitude input');
+    const longitudeInput = document.querySelector('#longitude input');
+
+    descriptionTextarea.addEventListener('input', () => {
+      if (descriptionTextarea.value.trim()) {
+        this.#setFieldError('description', '');
+      }
+    });
+
+    latitudeInput.addEventListener('input', () => {
+      if (!latitudeInput.value.trim() || this.#isValidOptionalCoordinate(latitudeInput.value)) {
+        this.#setFieldError('latitude', '');
+      }
+    });
+
+    longitudeInput.addEventListener('input', () => {
+      if (!longitudeInput.value.trim() || this.#isValidOptionalCoordinate(longitudeInput.value)) {
+        this.#setFieldError('longitude', '');
+      }
     });
   }
 
@@ -438,6 +470,7 @@ export default class AddStoryPage {
         await this.#updatePhotoPreviewFromFile(file);
       } catch (error) {
         console.error('#setupPhotoTools gallery error:', error);
+        this.#setFieldError('photo', error.message || 'Foto dari gallery gagal diproses');
         this.showToast('error', 'Foto dari gallery gagal diproses');
       } finally {
         event.target.value = '';
@@ -458,6 +491,7 @@ export default class AddStoryPage {
         await this.#capturePhotoFromCamera();
       } catch (error) {
         console.error('#setupPhotoTools capture error:', error);
+        this.#setFieldError('photo', error.message || 'Gagal mengambil gambar dari kamera');
         this.showToast('error', 'Gagal mengambil gambar dari kamera');
       }
     });
@@ -642,8 +676,16 @@ export default class AddStoryPage {
       throw new Error('Canvas snapshot failed');
     }
 
+    const photoFile = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+    const validationError = this.#validatePhotoFile(photoFile);
+
+    if (validationError) {
+      throw new Error(validationError);
+    }
+
     this.#photoBlob = blob;
-    this.#photoFile = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+    this.#photoFile = photoFile;
+    this.#setFieldError('photo', '');
     this.#showPhotoPreview();
   }
 
@@ -716,7 +758,120 @@ export default class AddStoryPage {
       e.preventDefault();
       latInput.value = '';
       lonInput.value = '';
+      this.#setFieldError('latitude', '');
+      this.#setFieldError('longitude', '');
     });
+  }
+
+  #validateStoryForm({ description, photoFile, latitudeValue, longitudeValue }) {
+    let isValid = true;
+    const latitude = this.#parseOptionalCoordinate(latitudeValue);
+    const longitude = this.#parseOptionalCoordinate(longitudeValue);
+
+    this.#clearFormErrors();
+
+    if (!description.trim()) {
+      this.#setFieldError('description', 'Deskripsi wajib diisi');
+      isValid = false;
+    }
+
+    const photoValidationError = this.#validatePhotoFile(photoFile);
+    if (photoValidationError) {
+      this.#setFieldError('photo', photoValidationError);
+      isValid = false;
+    }
+
+    if (!latitude.isValid) {
+      this.#setFieldError('latitude', 'Latitude harus berupa angka desimal yang valid');
+      isValid = false;
+    }
+
+    if (!longitude.isValid) {
+      this.#setFieldError('longitude', 'Longitude harus berupa angka desimal yang valid');
+      isValid = false;
+    }
+
+    return {
+      isValid,
+      description,
+      photoFile,
+      latitude: latitude.value,
+      longitude: longitude.value,
+    };
+  }
+
+  #parseOptionalCoordinate(value) {
+    const trimmedValue = value.trim();
+
+    if (!trimmedValue) {
+      return {
+        isValid: true,
+        value: null,
+      };
+    }
+
+    const parsedValue = Number(trimmedValue);
+
+    if (!Number.isFinite(parsedValue)) {
+      return {
+        isValid: false,
+        value: null,
+      };
+    }
+
+    return {
+      isValid: true,
+      value: parsedValue,
+    };
+  }
+
+  #isValidOptionalCoordinate(value) {
+    return this.#parseOptionalCoordinate(value).isValid;
+  }
+
+  #validatePhotoFile(photoFile) {
+    if (!(photoFile instanceof File)) {
+      return 'Foto wajib diisi';
+    }
+
+    if (!photoFile.type || !photoFile.type.startsWith('image/')) {
+      return 'Foto harus berupa file gambar';
+    }
+
+    if (photoFile.size > 1024 * 1024) {
+      return 'Ukuran foto maksimal 1 MB';
+    }
+
+    return '';
+  }
+
+  #clearFormErrors() {
+    this.#setFieldError('description', '');
+    this.#setFieldError('latitude', '');
+    this.#setFieldError('longitude', '');
+    this.#setFieldError('photo', '');
+  }
+
+  #setFieldError(field, message) {
+    const fieldError = this.#getFieldErrorElement(field);
+
+    if (!fieldError) {
+      return;
+    }
+
+    fieldError.textContent = message;
+    fieldError.style.display = message ? 'block' : 'none';
+  }
+
+  #getFieldErrorElement(field) {
+    const fieldMap = {
+      description: '#description .auth__field-error-message',
+      latitude: '#latitude .auth__field-error-message',
+      longitude: '#longitude .auth__field-error-message',
+      photo: '#photo-error-message',
+    };
+
+    return document.querySelector(fieldMap[field]);
   }
 
   showMapLoading() {
