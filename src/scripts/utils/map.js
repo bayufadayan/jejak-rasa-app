@@ -1,13 +1,29 @@
-import { map, tileLayer, Icon, icon, marker, latLng, latLngBounds } from 'leaflet';
+import * as L from 'leaflet';
+import { map, tileLayer, control, marker, latLng, latLngBounds } from 'leaflet';
+import * as maptilersdk from '@maptiler/leaflet-maptilersdk';
 import { OpenStreetMapProvider } from 'leaflet-geosearch';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import CONFIG from '../config.js';
+
+// Fix Leaflet default icon untuk Vite/Webpack bundler
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
+});
+
+const MAPTILER_API_KEY = CONFIG.MAPTILER_API_KEY;
+const HAS_MAPTILER_KEY = Boolean(MAPTILER_API_KEY && MAPTILER_API_KEY !== 'YOUR_MAPTILER_API_KEY_HERE');
 
 export default class Map {
   #zoom = 5;
   #map = null;
   #searchProvider = null;
+  #layerControl = null;
+  #baseMaps = {};
 
   static isGeolocationAvailable() {
     return 'geolocation' in navigator;
@@ -60,15 +76,76 @@ export default class Map {
       },
     });
 
-    const tileOsm = tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // --- Base tile layers ---
+    const osmLayer = tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+      maxZoom: 19,
     });
 
+    // Tentukan layer awal (default: OSM)
+    const initialLayers = [osmLayer];
+    this.#baseMaps = {
+      'OpenStreetMap': osmLayer,
+    };
+
+    // Tambah MapTiler layers jika API key tersedia
+    // apiKey dipass langsung ke maptilerLayer() karena maptilersdk.config tidak di-export
+    if (HAS_MAPTILER_KEY) {
+      const mapTilerStreets = maptilersdk.maptilerLayer({
+        apiKey: MAPTILER_API_KEY,
+        style: maptilersdk.MapStyle.STREETS,
+        attribution: '&copy; <a href="https://www.maptiler.com/copyright/" target="_blank">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+      });
+
+      const mapTilerSatellite = maptilersdk.maptilerLayer({
+        apiKey: MAPTILER_API_KEY,
+        style: maptilersdk.MapStyle.SATELLITE,
+        attribution: '&copy; <a href="https://www.maptiler.com/copyright/" target="_blank">MapTiler</a>',
+      });
+
+      const mapTilerOutdoor = maptilersdk.maptilerLayer({
+        apiKey: MAPTILER_API_KEY,
+        style: maptilersdk.MapStyle.OUTDOOR,
+        attribution: '&copy; <a href="https://www.maptiler.com/copyright/" target="_blank">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+      });
+
+      this.#baseMaps['MapTiler Streets'] = mapTilerStreets;
+      this.#baseMaps['MapTiler Satellite'] = mapTilerSatellite;
+      this.#baseMaps['MapTiler Outdoor'] = mapTilerOutdoor;
+    }
+
+    // Inisialisasi peta Leaflet
+    const { layers: _ignoredLayers, ...restOptions } = options;
     this.#map = map(document.querySelector(selector), {
       zoom: this.#zoom,
-      layers: [tileOsm],
-      ...options,
+      layers: initialLayers,
+      ...restOptions,
     });
+
+    // Tambah Layer Control (base maps)
+    this.#layerControl = control.layers(this.#baseMaps, {}, {
+      collapsed: true,
+      position: 'topright',
+    });
+    this.#layerControl.addTo(this.#map);
+  }
+
+  /**
+   * Tambah overlay layer ke layer control yang sudah ada.
+   * @param {string} name - Nama layer yang tampil di control
+   * @param {L.Layer} layer - Leaflet layer yang akan ditambahkan
+   * @param {boolean} [addToMap=true] - Langsung tampilkan di peta atau tidak
+   */
+  addOverlayLayer(name, layer, addToMap = true) {
+    if (!this.#layerControl) {
+      return;
+    }
+
+    this.#layerControl.addOverlay(layer, name);
+
+    if (addToMap) {
+      layer.addTo(this.#map);
+    }
   }
 
   invalidateSize() {
@@ -93,11 +170,15 @@ export default class Map {
   }
 
   createIcon(options = {}) {
-    return icon({
-      ...Icon.Default.prototype.options,
-      iconRetinaUrl: markerIcon2x,
+    return new L.Icon({
       iconUrl: markerIcon,
+      iconRetinaUrl: markerIcon2x,
       shadowUrl: markerShadow,
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      tooltipAnchor: [16, -28],
+      shadowSize: [41, 41],
       ...options,
     });
   }
@@ -145,7 +226,16 @@ export default class Map {
       return;
     }
 
-    this.#map.fitBounds(latLngBounds(coordinates), {
+    // Filter koordinat geografis yang valid (lat: -90..90, lon: -180..180)
+    const validCoords = coordinates.filter(([lat, lon]) => (
+      lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
+    ));
+
+    if (!validCoords.length) {
+      return;
+    }
+
+    this.#map.fitBounds(latLngBounds(validCoords), {
       padding: [32, 32],
       maxZoom: 14,
       ...options,

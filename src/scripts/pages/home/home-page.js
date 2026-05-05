@@ -241,7 +241,12 @@ export default class HomePage {
   #hasValidCoordinate(story) {
     const latitude = Number.parseFloat(story?.lat);
     const longitude = Number.parseFloat(story?.lon);
-    return Number.isFinite(latitude) && Number.isFinite(longitude);
+    return (
+      Number.isFinite(latitude) &&
+      Number.isFinite(longitude) &&
+      latitude >= -90 && latitude <= 90 &&
+      longitude >= -180 && longitude <= 180
+    );
   }
 
   #formatDate(dateValue) {

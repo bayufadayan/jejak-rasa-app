@@ -6,7 +6,6 @@ class UnauthorizeHeader extends HTMLElement {
     render() {
         const classList = this.getAttribute("class") || ""
         this.innerHTML = /* html */ `
-
         <header class="auth__navbar ${classList}">
             <div class="main-header">
                 <a class="brand-name" href="#/">
