@@ -415,6 +415,10 @@ export default class AddStoryPage {
         lon: validation.longitude,
       };
 
+      if (this.#isCameraOpen) {
+        await this.#closeCameraPanel();
+      }
+
       await this.#presenter.addStory(data);
     });
   }
