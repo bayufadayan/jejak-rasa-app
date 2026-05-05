@@ -182,6 +182,8 @@ html[data-view-transition-direction='backward']::view-transition-new(main-conten
 
 .main__navbar {
   background-color: #fef9f1;
+  border: none;
+  outline: none;
 }
 
 .main-header {

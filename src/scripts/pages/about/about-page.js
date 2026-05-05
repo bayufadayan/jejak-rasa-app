@@ -1,6 +1,6 @@
 export default class AboutPage {
   async render() {
-    return `
+    return /* html */ `
       <section class="about container">
         <div class="about__shell">
           <header class="about__hero">
