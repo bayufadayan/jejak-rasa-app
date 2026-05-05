@@ -6,6 +6,8 @@ class App {
   #content = null;
   #drawerButton = null;
   #navigationDrawer = null;
+  #lastRoute = null;
+  #isFirstRender = true;
 
   constructor({ navigationDrawer, drawerButton, content }) {
     this.#content = content;
@@ -48,12 +50,62 @@ class App {
       await page.afterRender();
     };
 
-    if (document.startViewTransition) {
-      await document.startViewTransition(renderContent).finished;
+    if (!document.startViewTransition || this.#isFirstRender) {
+      await renderContent();
+      this.#lastRoute = url;
+      this.#isFirstRender = false;
       return;
     }
 
-    await renderContent();
+    const transitionDirection = this.#getTransitionDirection(this.#lastRoute, url);
+    document.documentElement.setAttribute('data-view-transition-direction', transitionDirection);
+
+    const transition = document.startViewTransition(async () => {
+      await renderContent();
+    });
+
+    try {
+      await transition.finished;
+    } finally {
+      document.documentElement.removeAttribute('data-view-transition-direction');
+      this.#lastRoute = url;
+      this.#isFirstRender = false;
+    }
+  }
+
+  #getTransitionDirection(previousRoute, nextRoute) {
+    if (!previousRoute || !nextRoute || previousRoute === nextRoute) {
+      return 'forward';
+    }
+
+    const previousRank = this.#getRouteRank(previousRoute);
+    const nextRank = this.#getRouteRank(nextRoute);
+
+    if (nextRank < previousRank) {
+      return 'backward';
+    }
+
+    return 'forward';
+  }
+
+  #getRouteRank(route) {
+    if (route.startsWith('/login') || route.startsWith('/register')) {
+      return 0;
+    }
+
+    if (route === '/' || route.startsWith('/about')) {
+      return 1;
+    }
+
+    if (route.startsWith('/add-story')) {
+      return 2;
+    }
+
+    if (route.startsWith('/story/')) {
+      return 3;
+    }
+
+    return 1;
   }
 }
 
