@@ -138,7 +138,7 @@ export default class HomePage {
       this.#map = await Map.build('#home-map', {
         zoom: 5,
         center: [-2.5, 117.5],
-        scrollWheelZoom: false,
+        scrollWheelZoom: true,
         zoomControl: true,
       });
 
