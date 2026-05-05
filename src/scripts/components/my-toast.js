@@ -9,6 +9,7 @@ class MyToast extends HTMLElement {
         // Type = "success", "error", "info", "warning", "secondary"
         const typeAttribute = this.getAttribute("type") || "secondary"
         const message = this.getAttribute("message") || "This is your Message"
+        const isAssertive = typeAttribute === 'error' || typeAttribute === 'warning';
 
         const typeList = {
             "success" : {
@@ -58,7 +59,12 @@ class MyToast extends HTMLElement {
             }
         </style>
 
-        <div class="toast__container">
+        <div
+            class="toast__container"
+            role="${isAssertive ? 'alert' : 'status'}"
+            aria-live="${isAssertive ? 'assertive' : 'polite'}"
+            aria-atomic="true"
+        >
             <figure class="toast__icon">
                 <i data-lucide=${selectedType.icon}></i>
             </figure>

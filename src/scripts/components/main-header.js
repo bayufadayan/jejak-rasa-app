@@ -19,19 +19,26 @@ class MainHeader extends HTMLElement {
                     </figure>
                 </a>
 
-                <nav id="navigation-drawer" class="navigation-drawer">
+                <nav id="navigation-drawer" class="navigation-drawer" aria-label="Navigasi utama">
                 <ul id="nav-list" class="nav-list">
                     <li><a href="#/">Beranda</a></li>
                     <li><a href="#/about">About</a></li>
                     <li>
-                        <div class = "nav-list__dropdown-button">
+                        <button
+                            type="button"
+                            class="nav-list__dropdown-button"
+                            aria-label="Buka menu akun"
+                            aria-haspopup="menu"
+                            aria-expanded="false"
+                            aria-controls="user-menu"
+                        >
                             <i data-lucide="circle-user-round"></i>
                             <span> ${accountOwnerName} </span> 
                             <i data-lucide="chevron-down"></i>
-                        </div>
+                        </button>
 
-                        <div class="nav-list__dropdown-option">
-                            <button class="nav-list__dropdown-logout-btn">
+                        <div id="user-menu" class="nav-list__dropdown-option" role="menu">
+                            <button type="button" class="nav-list__dropdown-logout-btn" role="menuitem">
                                 <i data-lucide="log-out"></i>
                                 <span>Logout</span>
                             </button>
@@ -40,7 +47,14 @@ class MainHeader extends HTMLElement {
                 </ul>
                 </nav>
 
-                <button id="drawer-button" class="drawer-button">
+                <button
+                    id="drawer-button"
+                    class="drawer-button"
+                    type="button"
+                    aria-label="Buka menu navigasi"
+                    aria-controls="navigation-drawer"
+                    aria-expanded="false"
+                >
                     <i data-lucide="menu"></i>
                 </button>
 
@@ -48,26 +62,46 @@ class MainHeader extends HTMLElement {
         </header>
         `
         const dropdownButton = document.querySelector(".nav-list__dropdown-button");
+        const dropdownOption = document.querySelector(".nav-list__dropdown-option");
+
+        const closeDropdown = () => {
+            dropdownButton.classList.remove('open');
+            dropdownButton.setAttribute('aria-expanded', 'false');
+            dropdownOption.classList.remove('open');
+        };
 
         dropdownButton.addEventListener("click", () => {
-            const dropdownOption = document.querySelector(".nav-list__dropdown-option");
-            dropdownButton.classList.toggle("open")
-            dropdownOption.classList.toggle("open")
+            const isOpen = !dropdownOption.classList.contains('open');
+            dropdownButton.classList.toggle("open", isOpen);
+            dropdownButton.setAttribute('aria-expanded', String(isOpen));
+            dropdownOption.classList.toggle("open", isOpen);
+        });
 
-            document.body.addEventListener('click', (event) => {
-                if (
-                    !dropdownButton.contains(event.target) &&
-                    !dropdownOption.contains(event.target)
-                ) {
-                    dropdownButton.classList.remove('open');
-                    dropdownOption.classList.remove('open');
-                }
-            });
-        })
+        document.body.addEventListener('click', (event) => {
+            if (
+                !dropdownButton.contains(event.target) &&
+                !dropdownOption.contains(event.target)
+            ) {
+                closeDropdown();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape') {
+                return;
+            }
+
+            if (!dropdownOption.classList.contains('open')) {
+                return;
+            }
+
+            closeDropdown();
+            dropdownButton.focus();
+        });
 
         document.querySelector(".nav-list__dropdown-logout-btn").addEventListener("click", () => {
             getLogout();
-        })
+        });
         createIcons({ icons });
     }
 }

@@ -278,6 +278,12 @@ html[data-view-transition-direction='backward']::view-transition-new(main-conten
   text-decoration: underline;
 }
 
+.nav-list li a[aria-current='page'] {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  color: #7c3115;
+}
+
 .nav-list__dropdown-button {
   background-color: #b5512e;
   display: flex;
