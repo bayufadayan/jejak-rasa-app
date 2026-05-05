@@ -1,4 +1,4 @@
-import { map, tileLayer, Icon, icon, marker, latLng } from 'leaflet';
+import { map, tileLayer, Icon, icon, marker, latLng, latLngBounds } from 'leaflet';
 import { OpenStreetMapProvider } from 'leaflet-geosearch';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -102,7 +102,7 @@ export default class Map {
     });
   }
 
-  addMarker(coordinates, markerOptions = {}) {
+  addMarker(coordinates, markerOptions = {}, popupOptions = null) {
     if (typeof markerOptions !== 'object') {
       throw new Error('markerOptions must be an object');
     }
@@ -111,6 +111,18 @@ export default class Map {
       icon: this.createIcon(),
       ...markerOptions,
     });
+
+    if (popupOptions) {
+      if (typeof popupOptions !== 'object') {
+        throw new Error('popupOptions must be an object');
+      }
+
+      if (!('content' in popupOptions)) {
+        throw new Error('popupOptions must include `content` property.');
+      }
+
+      newMarker.bindPopup(popupOptions.content, popupOptions.options ?? {});
+    }
 
     newMarker.addTo(this.#map);
     return newMarker;
@@ -126,6 +138,18 @@ export default class Map {
 
   zoomOut() {
     this.#map.zoomOut();
+  }
+
+  fitBounds(coordinates, options = {}) {
+    if (!coordinates.length) {
+      return;
+    }
+
+    this.#map.fitBounds(latLngBounds(coordinates), {
+      padding: [32, 32],
+      maxZoom: 14,
+      ...options,
+    });
   }
 
   async searchPlaces(query) {

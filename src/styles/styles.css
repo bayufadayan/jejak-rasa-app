@@ -354,18 +354,20 @@ select,
 .home__add-btn {
   padding: 0.75rem 1.5rem;
   border-radius: 0;
-  background: #E4E447;
-  color: #333;
+  background-color: #b5512e;
+  color: #fff;
   font-weight: 700;
   text-decoration: none;
   transition: all 0.25s ease;
   white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px;
 }
 
 .home__add-btn:hover {
-  background: #cfcf2a;
+  background: #8a3e20;
   transform: translateY(-2px);
 }
 
@@ -414,6 +416,7 @@ select,
 }
 
 .home__map-card {
+  position: relative;
   border: 1px solid #ead7bd;
   border-radius: 0;
   background: linear-gradient(180deg, #fff9f0 0%, #f8ecd8 100%);
@@ -421,99 +424,73 @@ select,
   overflow: hidden;
 }
 
-.home__map-surface {
-  position: relative;
-  min-height: 420px;
-  background:
-    radial-gradient(circle at 20% 25%, rgba(255, 197, 111, 0.55) 0 10px, transparent 11px),
-    radial-gradient(circle at 72% 28%, rgba(181, 81, 46, 0.5) 0 14px, transparent 15px),
-    radial-gradient(circle at 80% 70%, rgba(249, 218, 173, 0.95) 0 8px, transparent 9px),
-    linear-gradient(135deg, rgba(179, 95, 50, 0.08), rgba(255, 255, 255, 0.0)),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.15));
+.home__map-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #ead7bd;
+  background: rgba(255, 250, 242, 0.92);
 }
 
-.home__map-surface::before,
-.home__map-surface::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(181, 81, 46, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(181, 81, 46, 0.12) 1px, transparent 1px);
-  background-size: 64px 64px;
-  opacity: 0.45;
-  pointer-events: none;
+.home__map-status-label {
+  color: #8f7a67;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
-.home__map-surface::after {
-  background-image:
-    radial-gradient(circle at 30% 72%, rgba(181, 81, 46, 0.22) 0 2px, transparent 3px),
-    radial-gradient(circle at 45% 44%, rgba(181, 81, 46, 0.2) 0 2px, transparent 3px),
-    radial-gradient(circle at 64% 58%, rgba(181, 81, 46, 0.2) 0 2px, transparent 3px),
-    radial-gradient(circle at 78% 32%, rgba(181, 81, 46, 0.2) 0 2px, transparent 3px);
-  background-size: auto;
-  opacity: 1;
-}
-
-.home__map-route {
-  position: absolute;
-  border: 2px dashed rgba(181, 81, 46, 0.45);
-  border-radius: 0;
-}
-
-.home__map-route--one {
-  inset: 20% 52% 36% 12%;
-  transform: rotate(-8deg);
-}
-
-.home__map-route--two {
-  inset: 34% 20% 18% 40%;
-  transform: rotate(11deg);
-}
-
-.home__map-route--three {
-  inset: 12% 16% 54% 56%;
-  transform: rotate(20deg);
-}
-
-.home__map-marker {
-  position: absolute;
-  padding: 0.55rem 0.85rem;
-  border-radius: 0;
-  background: rgba(255, 248, 236, 0.95);
-  border: 1px solid rgba(181, 81, 46, 0.18);
-  color: #8a3e20;
-  font-size: 0.95rem;
+.home__map-status-value {
+  color: #2d2118;
   font-weight: 700;
-  box-shadow: 0 10px 24px rgba(93, 60, 32, 0.12);
+  text-align: right;
 }
 
-.home__map-marker::before {
-  content: "";
-  position: absolute;
-  inset-inline-start: 50%;
-  inset-block-start: calc(100% - 2px);
-  width: 14px;
-  height: 14px;
-  border-radius: 0;
-  background: #b5512e;
-  transform: translateX(-50%) rotate(-45deg);
-  box-shadow: 0 0 0 4px rgba(181, 81, 46, 0.12);
+.home__map-surface {
+  width: 100%;
+  height: 420px;
+  min-height: 420px;
 }
 
-.home__map-marker--one {
-  top: 24%;
-  left: 18%;
+.home__map-popup-description,
+.home__map-popup-time {
+  color: #6d5a4a;
+  line-height: 1.6;
 }
 
-.home__map-marker--two {
-  top: 52%;
-  left: 44%;
+.home__map-popup {
+  display: grid;
+  gap: 8px;
+  min-width: 220px;
 }
 
-.home__map-marker--three {
-  top: 22%;
-  right: 18%;
+.home__map-popup-label {
+  color: #b5512e;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.home__map-popup-title {
+  color: #2d2118;
+  font-family: "Figtree", sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.home__map-popup-link {
+  width: fit-content;
+  color: #b5512e;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.home__map-popup-link:hover {
+  text-decoration: underline;
 }
 
 .home__map-meta {
@@ -541,6 +518,25 @@ select,
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
+}
+
+.home__story-empty {
+  padding: 28px;
+  border: 1px dashed #d8b893;
+  background: rgba(255, 248, 236, 0.7);
+}
+
+.home__story-empty-title {
+  color: #2d2118;
+  font-family: "Figtree", sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.home__story-empty-text {
+  margin-top: 6px;
+  color: #6d5a4a;
+  line-height: 1.6;
 }
 
 .home__story-card {
@@ -685,24 +681,9 @@ select,
     justify-content: center;
   }
 
-  .home__map-marker {
-    font-size: 0.8rem;
-    padding: 0.45rem 0.7rem;
-  }
-
-  .home__map-marker--one {
-    top: 18%;
-    left: 12%;
-  }
-
-  .home__map-marker--two {
-    top: 52%;
-    left: 36%;
-  }
-
-  .home__map-marker--three {
-    top: 16%;
-    right: 12%;
+  .home__map-surface {
+    height: 340px;
+    min-height: 340px;
   }
 
   .home__story-grid {
