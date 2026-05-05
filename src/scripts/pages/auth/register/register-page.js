@@ -14,7 +14,7 @@ export default class RegisterPage {
             <div class="auth__container auth__container--register">
                 <div class="auth__decoration">
                     <figure class="auth__figure">
-                        <img src="public/images/register-decoration.svg" alt="decoration" class="auth__image">
+                        <img src="/images/register-decoration.svg" alt="" class="auth__image">
                     </figure>
                 </div>
 
@@ -27,10 +27,10 @@ export default class RegisterPage {
                     </header>
 
                     <form class="auth__form">
-                        <field-group type="text" id="name" label="Nama Lengkap"></field-group>
-                        <field-group type="email" id="email" label="Email"></field-group>
-                        <field-group type="password" id="password" label="Password"></field-group>
-                        <field-group type="password" id="confirm-password" label="Konfirmasi Password"></field-group>
+                        <field-group type="text" id="name" label="Nama Lengkap" placeholder="Fulan bin fulan"></field-group>
+                        <field-group type="email" id="email" label="Email" placeholder="email.kamu@domain.com"></field-group>
+                        <field-group type="password" id="password" label="Password" placeholder="********"></field-group>
+                        <field-group type="password" id="confirm-password" label="Konfirmasi Password" placeholder="********"></field-group>
                         <button type="submit" class="main__btn">Daftar</button>
                         <p>Sudah punya akun? <a href="/#/login" class="auth__link">Masuk yuuk!</a></p>
                     </form>

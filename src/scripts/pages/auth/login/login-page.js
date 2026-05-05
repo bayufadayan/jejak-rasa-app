@@ -15,7 +15,7 @@ export default class LoginPage {
             <div class="auth__container">
                 <div class="auth__decoration">
                     <figure class="auth__figure">
-                        <img src="public/images/login-decoration.svg" alt="decoration" class="auth__image">
+                        <img src="/images/login-decoration.svg" alt="" class="auth__image">
                     </figure>
                 </div>
 
@@ -28,8 +28,8 @@ export default class LoginPage {
                     </header>
 
                     <form class="auth__form">
-                        <field-group type="email" id="email" label="Email"></field-group>
-                        <field-group type="password" id="password" label="Password"></field-group>
+                        <field-group type="email" id="email" label="Email" placeholder="email.kamu@domain.com"></field-group>
+                        <field-group type="password" id="password" label="Password" placeholder="********"></field-group>
 
                         <button type="submit" class="main__btn">Masuk</button>
                         <p>Belum punya akun? <a href="/#/register" class="auth__link">Daftar disini</a></p>

@@ -12,6 +12,8 @@
     "vite": "^6.2.0"
   },
   "dependencies": {
+    "leaflet": "^1.9.4",
+    "leaflet-geosearch": "^4.4.0",
     "lucide": "^1.12.0"
   }
 }
