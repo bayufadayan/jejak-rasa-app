@@ -48,7 +48,7 @@ export default class StoryDetailPage {
     const description = this.#escapeHtml(story.description || 'Tidak ada deskripsi');
     const imageUrl = this.#escapeAttribute(story.photoUrl || '');
 
-    return `
+    return /* html */ `
       <section class="story-detail container">
         <div class="story-detail__shell">
           <header class="story-detail__hero">

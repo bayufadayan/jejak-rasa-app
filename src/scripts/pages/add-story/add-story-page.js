@@ -120,7 +120,7 @@ export default class AddStoryPage {
               <div class="add-story__preview-card">
                 <p class="add-story__preview-label  ">Preview cerita</p>
                 <div id="preview-figure" class="add-story__preview-figure" style="display: none;">
-                  <img id="preview-image" src="" alt="" />
+                  <img id="preview-image" src="" alt="preview-image" />
                 </div>
                 <div id="preview-empty" class="add-story__preview-empty">
                   <p>Foto akan tampil di sini</p>

@@ -183,7 +183,7 @@ export default class HomePage {
     const createdAt = this.#formatDate(story.createdAt);
     const locationText = this.#formatStoryLocation(story);
 
-    return `
+    return /* html */ `
       <a class="home__story-card" href="#/story/${story.id}" aria-label="Buka detail cerita ${title}">
         <figure class="home__story-figure">
           <img class="home__story-image" src="${imageUrl}" alt="Foto story ${title}" />
