@@ -54,11 +54,11 @@ export function getLogout() {
     location.hash = "/login";
 }
 
-export async function getStories({ page = 1, size = 10, location = 0 } = {}) {
+export async function getStories({ page, size, location = 0 } = {}) {
   const token = getAccessToken();
   const url = new URL(ENDPOINTS.STORIES);
-  url.searchParams.append('page', page);
-  url.searchParams.append('size', size);
+  if (page) url.searchParams.append('page', page);
+  if (size) url.searchParams.append('size', size);
   url.searchParams.append('location', location);
 
   const fetchResponse = await fetch(url.toString(), {

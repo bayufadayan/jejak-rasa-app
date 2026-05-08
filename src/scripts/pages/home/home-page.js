@@ -7,6 +7,9 @@ export default class HomePage {
   #presenter = null;
   #map = null;
   #locationStories = [];
+  #markers = {};
+  #observer = null;
+  #mapSearchDebounce = null;
 
   async render() {
     return /* html */ `
@@ -29,6 +32,13 @@ export default class HomePage {
               <div class="home__map-status">
                 <span class="home__map-status-label">Status Peta</span>
                 <span class="home__map-status-value" id="home-map-status">Loading...</span>
+              </div>
+              <div class="add-story__map-toolbar" style="padding: 1rem 1.2rem 0; position: relative; z-index: 400;">
+                <div class="add-story__map-search">
+                  <label for="home-map-search-input" class="add-story__map-search-label">Filter lokasi cerita</label>
+                  <input id="home-map-search-input" type="search" class="add-story__map-search-input" placeholder="Contoh: Jakarta, Bandung..." autocomplete="off" />
+                  <ul id="home-map-search-results" class="add-story__map-search-results" hidden></ul>
+                </div>
               </div>
               <div class="home__map-surface" id="home-map"></div>
               <div class="home__map-meta" id="home-map-meta">
@@ -100,10 +110,9 @@ export default class HomePage {
   }
 
   showLoadMoreLoading() {
-    const loadMoreBtn = document.getElementById('home-load-more-btn');
-    if (loadMoreBtn) {
-      loadMoreBtn.disabled = true;
-      loadMoreBtn.innerHTML = '<i class="fas fa-spinner loader-button" style="animation: spin 1s linear infinite;"></i> Memuat...';
+    const loadMoreContainer = document.getElementById('home-load-more-container');
+    if (loadMoreContainer) {
+      loadMoreContainer.innerHTML = '<div style="padding: 2rem; text-align: center;"><i class="fas fa-spinner loader-button" style="animation: spin 1s linear infinite; font-size: 2rem; color: var(--color-primary);"></i><p style="margin-top: 1rem;">Memuat lebih banyak cerita...</p></div>';
     }
   }
 
@@ -140,6 +149,20 @@ export default class HomePage {
           ${stories.map((story) => this.#buildStoryCard(story)).join('')}
         </div>
       `;
+      
+      // Setup Interactivity: Sync list to map
+      stories.forEach((story) => {
+        const cardEl = document.getElementById(`story-card-${story.id}`);
+        if (cardEl && this.#markers[story.id]) {
+          cardEl.addEventListener('mouseenter', () => {
+            this.#markers[story.id].openPopup();
+            const coords = this.#toCoordinate(story);
+            if (coords) {
+              this.#map.flyTo(coords, 8);
+            }
+          });
+        }
+      });
     } else {
       container.innerHTML = `
         <div class="home__story-empty">
@@ -153,11 +176,30 @@ export default class HomePage {
     if (loadMoreContainer) {
       if (hasMoreStories && stories.length) {
         loadMoreContainer.innerHTML = `
-          <button id="home-load-more-btn" class="main__btn" style="width: auto; padding: 0.75rem 2rem;">Muat Lebih Banyak</button>
+          <div id="infinite-scroll-trigger" style="height: 20px; width: 100%;"></div>
         `;
-        document.getElementById('home-load-more-btn').addEventListener('click', () => {
-          this.#presenter.getStories(true);
-        });
+        
+        // Setup Intersection Observer for Infinite Scroll
+        if (this.#observer) {
+          this.#observer.disconnect();
+        }
+        
+        const trigger = document.getElementById('infinite-scroll-trigger');
+        this.#observer = new IntersectionObserver((entries) => {
+          if (entries[0].isIntersecting) {
+            this.#observer.disconnect();
+            this.#presenter.getStories(true);
+          }
+        }, { rootMargin: '100px' });
+        
+        this.#observer.observe(trigger);
+        
+      } else if (!hasMoreStories && stories.length) {
+        loadMoreContainer.innerHTML = `
+          <div style="text-align: center; padding: 2rem; color: #666;">
+            <p>Semua cerita telah dimuat.</p>
+          </div>
+        `;
       } else {
         loadMoreContainer.innerHTML = '';
       }
@@ -186,6 +228,7 @@ export default class HomePage {
   async #setupMap() {
     const mapSurface = document.getElementById('home-map');
     if (!mapSurface) return;
+    if (this.#map) return;
 
     try {
       this.#map = await Map.build('#home-map', {
@@ -197,6 +240,8 @@ export default class HomePage {
 
       this.#map.invalidateSize();
 
+      this.#markers = {};
+
       const coordinates = this.#locationStories
         .map((story) => this.#toCoordinate(story))
         .filter(Boolean);
@@ -206,7 +251,7 @@ export default class HomePage {
         if (!coordinate) return;
 
         const popupContent = this.#buildMarkerPopup(story);
-        this.#map.addMarker(coordinate, {}, {
+        const marker = this.#map.addMarker(coordinate, {}, {
           content: popupContent,
           options: {
             maxWidth: 280,
@@ -214,7 +259,11 @@ export default class HomePage {
             autoPan: true,
           },
         });
+        
+        this.#markers[story.id] = marker;
       });
+
+      this.#setupMapToolbar();
 
       if (coordinates.length === 1) {
         this.#map.flyTo(coordinates[0], 8);
@@ -227,6 +276,100 @@ export default class HomePage {
     }
   }
 
+  #setupMapToolbar() {
+    const searchInput = document.querySelector('#home-map-search-input');
+    const searchResults = document.querySelector('#home-map-search-results');
+    if (!searchInput || !searchResults) return;
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(this.#mapSearchDebounce);
+      this.#mapSearchDebounce = setTimeout(async () => {
+        await this.#handleMapSearch(searchInput.value);
+      }, 350);
+    });
+
+    searchResults.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+      const clickedElement = event.target instanceof Element ? event.target : null;
+      const resultButton = clickedElement?.closest('button[data-lat][data-lng]');
+
+      if (!resultButton) return;
+
+      const latitude = Number.parseFloat(resultButton.dataset.lat || '');
+      const longitude = Number.parseFloat(resultButton.dataset.lng || '');
+
+      if (Number.isNaN(latitude) || Number.isNaN(longitude)) return;
+
+      this.#map.flyTo([latitude, longitude], 12);
+      searchInput.value = resultButton.dataset.label || resultButton.textContent.trim();
+      this.#renderMapSearchResults([]);
+    });
+
+    searchInput.addEventListener('blur', () => {
+      setTimeout(() => this.#renderMapSearchResults([]), 120);
+    });
+
+    searchInput.addEventListener('focus', () => {
+      if (searchInput.value.trim()) this.#handleMapSearch(searchInput.value);
+    });
+
+    searchInput.addEventListener('search', () => this.#renderMapSearchResults([]));
+  }
+
+  async #handleMapSearch(query) {
+    if (!this.#map) return;
+    if (!query.trim()) {
+      this.#renderMapSearchResults([]);
+      return;
+    }
+
+    try {
+      const results = await this.#map.searchPlaces(query);
+      this.#renderMapSearchResults(results.slice(0, 5));
+    } catch (error) {
+      console.error('#handleMapSearch error:', error);
+      this.#renderMapSearchResults([]);
+    }
+  }
+
+  #renderMapSearchResults(results) {
+    const searchResults = document.querySelector('#home-map-search-results');
+    if (!searchResults) return;
+
+    if (!results.length) {
+      searchResults.hidden = true;
+      searchResults.innerHTML = '';
+      return;
+    }
+
+    searchResults.innerHTML = results
+      .map((result) => {
+        const latitude = Number.parseFloat(result?.y ?? result?.lat ?? result?.latitude ?? result?.raw?.lat ?? '');
+        const longitude = Number.parseFloat(result?.x ?? result?.lng ?? result?.lon ?? result?.longitude ?? result?.raw?.lon ?? '');
+
+        if (Number.isNaN(latitude) || Number.isNaN(longitude)) return '';
+
+        const label = result.label || 'Lokasi tanpa nama';
+        const safeLabel = this.#escapeHtml(label);
+        return `
+          <li>
+            <button
+              type="button"
+              class="add-story__map-search-result-btn"
+              data-lat="${latitude}"
+              data-lng="${longitude}"
+              data-label="${label.replace(/"/g, '&quot;')}"
+            >
+              ${safeLabel}
+            </button>
+          </li>
+        `;
+      })
+      .join('');
+
+    searchResults.hidden = false;
+  }
+
   #buildStoryCard(story) {
     const title = this.#escapeHtml(story.name || 'Tanpa nama');
     const description = this.#escapeHtml(this.#truncate(story.description || 'Tidak ada deskripsi', 120));
@@ -235,7 +378,7 @@ export default class HomePage {
     const locationText = this.#formatStoryLocation(story);
 
     return /* html */ `
-      <a class="home__story-card" href="#/story/${story.id}" aria-label="Buka detail cerita ${title}">
+      <a id="story-card-${story.id}" class="home__story-card" href="#/story/${story.id}" aria-label="Buka detail cerita ${title}">
         <figure class="home__story-figure">
           <img class="home__story-image" src="${imageUrl}" alt="Foto story ${title}" />
         </figure>

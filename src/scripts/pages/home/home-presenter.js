@@ -28,7 +28,7 @@ export default class HomePresenter {
     }
 
     try {
-      console.log(`HomePresenter: fetching stories from API (Page ${this.#currentPage})`);
+      console.log(`HomePage: fetching stories from API (Page ${this.#currentPage})`);
       
       const fetchPromises = [
         this.#model.getStories({ page: this.#currentPage, size: 12, location: 0 }),
@@ -36,7 +36,7 @@ export default class HomePresenter {
 
       // Only fetch location stories once on initial load
       if (!isLoadMore) {
-        fetchPromises.push(this.#model.getStories({ size: 100, location: 1 }));
+        fetchPromises.push(this.#model.getStories({ size: 50, location: 1 }));
       }
 
       const [storiesResponse, locationStoriesResponse] = await Promise.all(fetchPromises);
@@ -51,6 +51,11 @@ export default class HomePresenter {
 
       const newStories = storiesResponse.listStory || [];
       
+      console.log('HomePage: stories response', storiesResponse);
+      if (!isLoadMore && locationStoriesResponse) {
+        console.log('HomePage: location stories response', locationStoriesResponse);
+      }
+
       if (newStories.length < 12) {
         this.#hasMoreStories = false;
       }
@@ -59,6 +64,11 @@ export default class HomePresenter {
 
       if (!isLoadMore && locationStoriesResponse) {
         this.#locationStories = (locationStoriesResponse.listStory || []).filter((story) => this.#hasValidCoordinate(story));
+        console.log('HomePage: stories loaded', {
+          totalStories: this.#currentStories.length,
+          locationStories: this.#locationStories.length,
+          locationStoriesResponseCount: (locationStoriesResponse.listStory || []).length,
+        });
       }
 
       this.#view.populateStories(this.#currentStories, this.#locationStories, this.#hasMoreStories);

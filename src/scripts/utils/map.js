@@ -76,9 +76,13 @@ export default class Map {
       },
     });
 
-    // --- Base tile layers ---
     const osmLayer = tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+      maxZoom: 19,
+    });
+
+    const osmHOTLayer = tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/" target="_blank">Humanitarian OpenStreetMap Team</a> hosted by <a href="https://openstreetmap.fr/" target="_blank">OpenStreetMap France</a>',
       maxZoom: 19,
     });
 
@@ -86,6 +90,7 @@ export default class Map {
     const initialLayers = [osmLayer];
     this.#baseMaps = {
       'OpenStreetMap': osmLayer,
+      'OpenStreetMap HOT': osmHOTLayer,
     };
 
     // Tambah MapTiler layers jika API key tersedia
