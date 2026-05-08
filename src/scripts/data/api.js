@@ -8,6 +8,9 @@ const ENDPOINTS = {
 
   // Story
   STORIES: `${CONFIG.BASE_URL}/stories`,
+
+  // Notifications
+  NOTIFICATIONS_SUBSCRIBE: `${CONFIG.BASE_URL}/notifications/subscribe`,
 };
 
 
@@ -105,6 +108,49 @@ export async function addStory({ description, photo, lat, lon }) {
       'Authorization': `Bearer ${token}`,
     },
     body: formData,
+  });
+  const json = await fetchResponse.json();
+
+  return {
+    ...json,
+    ok: fetchResponse.ok,
+  };
+}
+
+export async function subscribePushNotification({ endpoint, keys: { p256dh, auth } }) {
+  const accessToken = getAccessToken();
+  const data = JSON.stringify({
+    endpoint,
+    keys: { p256dh, auth },
+  });
+
+  const fetchResponse = await fetch(ENDPOINTS.NOTIFICATIONS_SUBSCRIBE, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: data,
+  });
+  const json = await fetchResponse.json();
+
+  return {
+    ...json,
+    ok: fetchResponse.ok,
+  };
+}
+
+export async function unsubscribePushNotification({ endpoint }) {
+  const accessToken = getAccessToken();
+  const data = JSON.stringify({ endpoint });
+
+  const fetchResponse = await fetch(ENDPOINTS.NOTIFICATIONS_SUBSCRIBE, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: data,
   });
   const json = await fetchResponse.json();
 

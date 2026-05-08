@@ -1,6 +1,14 @@
 import routes from '../routes/routes';
 import '../components/main-header.js'
 import { getActiveRoute } from '../routes/url-parser';
+import { getAccessToken } from '../utils/auth.js';
+import { isServiceWorkerAvailable } from '../utils/index.js';
+import {
+  isCurrentPushSubscriptionAvailable,
+  isNotificationAvailable,
+  subscribe,
+  unsubscribe,
+} from '../utils/notification-helper.js';
 import NotFoundPage from './not-found/not-found-page.js';
 
 class App {
@@ -91,6 +99,7 @@ class App {
       this.#lastRoute = url;
       this.#isFirstRender = false;
       this.#applyPostRenderAccessibility(url, isFirst);
+      await this.#setupPushNotificationToggle();
       return;
     }
 
@@ -108,6 +117,7 @@ class App {
       this.#lastRoute = url;
       this.#isFirstRender = false;
       this.#applyPostRenderAccessibility(url, false);
+      await this.#setupPushNotificationToggle();
     }
   }
 
@@ -196,6 +206,61 @@ class App {
     }
 
     return 1;
+  }
+
+  async #setupPushNotificationToggle() {
+    const button = document.getElementById('push-toggle-button');
+    if (!button) {
+      return;
+    }
+
+    const isLoggedIn = !!getAccessToken();
+    button.hidden = !isLoggedIn;
+
+    if (!isLoggedIn) {
+      return;
+    }
+
+    const isSupported = isServiceWorkerAvailable() && isNotificationAvailable();
+    button.disabled = !isSupported;
+
+    if (!isSupported) {
+      this.#updatePushToggleLabel(button, false, 'Notifikasi tidak didukung');
+      button.title = 'Browser tidak mendukung push notification.';
+      return;
+    }
+
+    const isSubscribed = await isCurrentPushSubscriptionAvailable();
+    this.#updatePushToggleLabel(button, isSubscribed);
+
+    button.onclick = async () => {
+      button.disabled = true;
+      button.title = '';
+
+      if (await isCurrentPushSubscriptionAvailable()) {
+        await unsubscribe();
+      } else {
+        await subscribe();
+      }
+
+      const latestState = await isCurrentPushSubscriptionAvailable();
+      this.#updatePushToggleLabel(button, latestState);
+      button.disabled = false;
+    };
+  }
+
+  #updatePushToggleLabel(button, isSubscribed, customLabel) {
+    const label = button.querySelector('.nav-list__toggle-label');
+    const status = customLabel || (isSubscribed ? 'Notifikasi: Aktif' : 'Notifikasi: Mati');
+
+    button.dataset.state = isSubscribed ? 'on' : 'off';
+    button.setAttribute('aria-pressed', String(isSubscribed));
+
+    if (label) {
+      label.textContent = status;
+    } else {
+      button.textContent = status;
+    }
   }
 }
 

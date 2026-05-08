@@ -25,6 +25,17 @@ class MainHeader extends HTMLElement {
                     <li><a href="#/about">About</a></li>
                     <li>
                         <button
+                            id="push-toggle-button"
+                            class="nav-list__toggle-button"
+                            type="button"
+                            aria-pressed="false"
+                        >
+                            <i data-lucide="bell"></i>
+                            <span class="nav-list__toggle-label">Notifikasi: Mati</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button
                             type="button"
                             class="nav-list__dropdown-button"
                             aria-label="Buka menu akun"
