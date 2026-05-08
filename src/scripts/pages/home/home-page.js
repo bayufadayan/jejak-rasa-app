@@ -1,50 +1,14 @@
 import { createIcons, icons } from 'lucide';
 import * as API from '../../data/api.js';
 import Map from '../../utils/map.js';
+import HomePresenter from './home-presenter.js';
 
 export default class HomePage {
+  #presenter = null;
   #map = null;
-  #stories = [];
   #locationStories = [];
-  #loadError = null;
 
   async render() {
-    this.#stories = [];
-    this.#locationStories = [];
-    this.#loadError = null;
-
-    try {
-      console.log('HomePage: fetching stories from API');
-
-      const [storiesResponse, locationStoriesResponse] = await Promise.all([
-        API.getStories({ page: 1, size: 12, location: 0 }),
-        API.getStories({ page: 1, size: 50, location: 1 }),
-      ]);
-
-      console.log('HomePage: stories response', storiesResponse);
-      console.log('HomePage: location stories response', locationStoriesResponse);
-
-      if (!storiesResponse.ok) {
-        throw new Error(storiesResponse.message || 'Gagal memuat daftar cerita');
-      }
-
-      if (!locationStoriesResponse.ok) {
-        throw new Error(locationStoriesResponse.message || 'Gagal memuat cerita berlokasi');
-      }
-
-      this.#stories = storiesResponse.listStory || [];
-      this.#locationStories = this.#stories.filter((story) => this.#hasValidCoordinate(story));
-
-      console.log('HomePage: stories loaded', {
-        totalStories: this.#stories.length,
-        locationStories: this.#locationStories.length,
-        locationStoriesResponseCount: (locationStoriesResponse.listStory || []).length,
-      });
-    } catch (error) {
-      console.error('HomePage render error:', error);
-      this.#loadError = error.message || 'Gagal memuat home page';
-    }
-
     return /* html */ `
       <section class="home container">
         <div class="home__shell">
@@ -64,23 +28,17 @@ export default class HomePage {
             <div class="home__map-card">
               <div class="home__map-status">
                 <span class="home__map-status-label">Status Peta</span>
-                <span class="home__map-status-value">
-                  ${this.#loadError
-                    ? 'Data cerita gagal dimuat, peta default tetap ditampilkan.'
-                    : this.#locationStories.length
-                      ? `${this.#locationStories.length} marker aktif`
-                      : 'Belum ada marker, peta tetap tampil.'}
-                </span>
+                <span class="home__map-status-value" id="home-map-status">Loading...</span>
               </div>
               <div class="home__map-surface" id="home-map"></div>
-              <div class="home__map-meta">
+              <div class="home__map-meta" id="home-map-meta">
                 <div>
                   <p class="home__meta-label">Total Story</p>
-                  <strong class="home__meta-value">${this.#stories.length} cerita</strong>
+                  <strong class="home__meta-value" id="meta-total">0 cerita</strong>
                 </div>
                 <div>
                   <p class="home__meta-label">Marker Aktif</p>
-                  <strong class="home__meta-value">${this.#locationStories.length} titik</strong>
+                  <strong class="home__meta-value" id="meta-active">0 titik</strong>
                 </div>
               </div>
             </div>
@@ -100,16 +58,9 @@ export default class HomePage {
               </div>
             </div>
 
-            ${this.#stories.length ? `
-              <div class="home__story-grid">
-                ${this.#stories.map((story) => this.#buildStoryCard(story)).join('')}
-              </div>
-            ` : `
-              <div class="home__story-empty">
-                <p class="home__story-empty-title">Belum ada story untuk ditampilkan</p>
-                <p class="home__story-empty-text">Coba muat ulang atau buat cerita baru terlebih dahulu.</p>
-              </div>
-            `}
+            <div id="home-stories-container"></div>
+            
+            <div id="home-load-more-container" style="text-align: center; margin-top: 2rem;"></div>
           </section>
         </div>
       </section>
@@ -124,15 +75,117 @@ export default class HomePage {
 
     window.scrollTo(0, 0);
     createIcons({ icons });
+
+    this.#presenter = new HomePresenter({
+      view: this,
+      model: API,
+    });
+
+    await this.#presenter.getStories();
+  }
+
+  showLoading() {
+    const container = document.getElementById('home-stories-container');
+    if (container) {
+      container.innerHTML = `
+        <div class="home__story-empty" style="text-align: center; padding: 3rem;">
+          <p>Loading stories...</p>
+        </div>
+      `;
+    }
+    const loadMoreContainer = document.getElementById('home-load-more-container');
+    if (loadMoreContainer) {
+      loadMoreContainer.innerHTML = '';
+    }
+  }
+
+  showLoadMoreLoading() {
+    const loadMoreBtn = document.getElementById('home-load-more-btn');
+    if (loadMoreBtn) {
+      loadMoreBtn.disabled = true;
+      loadMoreBtn.innerHTML = '<i class="fas fa-spinner loader-button" style="animation: spin 1s linear infinite;"></i> Memuat...';
+    }
+  }
+
+  hideLoading() {
+    // Optional, because populateStories will override the content.
+  }
+
+  async populateStories(stories, locationStories, hasMoreStories) {
+    this.#locationStories = locationStories;
+    
+    // Update Map Status and Meta
+    const statusEl = document.getElementById('home-map-status');
+    const totalEl = document.getElementById('meta-total');
+    const activeEl = document.getElementById('meta-active');
+
+    if (statusEl) {
+      statusEl.textContent = locationStories.length
+        ? `${locationStories.length} marker aktif`
+        : 'Belum ada marker, peta tetap tampil.';
+    }
+    if (totalEl) totalEl.textContent = `${stories.length} cerita`;
+    if (activeEl) activeEl.textContent = `${locationStories.length} titik`;
+
+    // Initialize map
     await this.#setupMap();
+
+    // Render Story Grid
+    const container = document.getElementById('home-stories-container');
+    if (!container) return;
+
+    if (stories.length) {
+      container.innerHTML = `
+        <div class="home__story-grid">
+          ${stories.map((story) => this.#buildStoryCard(story)).join('')}
+        </div>
+      `;
+    } else {
+      container.innerHTML = `
+        <div class="home__story-empty">
+          <p class="home__story-empty-title">Belum ada story untuk ditampilkan</p>
+          <p class="home__story-empty-text">Coba muat ulang atau buat cerita baru terlebih dahulu.</p>
+        </div>
+      `;
+    }
+
+    const loadMoreContainer = document.getElementById('home-load-more-container');
+    if (loadMoreContainer) {
+      if (hasMoreStories && stories.length) {
+        loadMoreContainer.innerHTML = `
+          <button id="home-load-more-btn" class="main__btn" style="width: auto; padding: 0.75rem 2rem;">Muat Lebih Banyak</button>
+        `;
+        document.getElementById('home-load-more-btn').addEventListener('click', () => {
+          this.#presenter.getStories(true);
+        });
+      } else {
+        loadMoreContainer.innerHTML = '';
+      }
+    }
+  }
+
+  populateError(message) {
+    const container = document.getElementById('home-stories-container');
+    if (container) {
+      container.innerHTML = `
+        <div class="home__story-empty">
+          <p class="home__story-empty-title">Gagal memuat cerita</p>
+          <p class="home__story-empty-text">${message}</p>
+        </div>
+      `;
+    }
+
+    const statusEl = document.getElementById('home-map-status');
+    if (statusEl) {
+      statusEl.textContent = 'Data cerita gagal dimuat, peta default tetap ditampilkan.';
+    }
+    
+    this.#setupMap(); // Still setup map with empty coordinates
   }
 
   async #setupMap() {
     const mapSurface = document.getElementById('home-map');
-
-    if (!mapSurface) {
-      return;
-    }
+    if (!mapSurface) return;
 
     try {
       this.#map = await Map.build('#home-map', {
@@ -150,9 +203,7 @@ export default class HomePage {
 
       this.#locationStories.forEach((story) => {
         const coordinate = this.#toCoordinate(story);
-        if (!coordinate) {
-          return;
-        }
+        if (!coordinate) return;
 
         const popupContent = this.#buildMarkerPopup(story);
         this.#map.addMarker(coordinate, {}, {
@@ -221,7 +272,7 @@ export default class HomePage {
   }
 
   #formatStoryLocation(story) {
-    if (!this.#hasValidCoordinate(story)) {
+    if (!this.#toCoordinate(story)) {
       return 'Tanpa lokasi';
     }
 
@@ -231,22 +282,18 @@ export default class HomePage {
   }
 
   #toCoordinate(story) {
-    if (!this.#hasValidCoordinate(story)) {
-      return null;
-    }
-
-    return [Number.parseFloat(story.lat), Number.parseFloat(story.lon)];
-  }
-
-  #hasValidCoordinate(story) {
     const latitude = Number.parseFloat(story?.lat);
     const longitude = Number.parseFloat(story?.lon);
-    return (
+    
+    if (
       Number.isFinite(latitude) &&
       Number.isFinite(longitude) &&
       latitude >= -90 && latitude <= 90 &&
       longitude >= -180 && longitude <= 180
-    );
+    ) {
+      return [latitude, longitude];
+    }
+    return null;
   }
 
   #formatDate(dateValue) {
