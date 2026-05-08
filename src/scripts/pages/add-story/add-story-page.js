@@ -62,7 +62,7 @@ export default class AddStoryPage {
                     </button>
                   </div>
                   <div class="add-story__camera-panel" id="camera-panel" hidden>
-                    <select id="camera-select" class="add-story__camera-select"></select>
+                    <select id="camera-select" class="add-story__camera-select" aria-label="Pilih kamera perangkat"></select>
                     <div class="add-story__camera-view">
                       <video id="camera-video" class="add-story__camera-video" playsinline muted>Video stream not available.</video>
                     </div>
@@ -235,6 +235,54 @@ export default class AddStoryPage {
       this.#placeMarker(latitude, longitude);
       searchInput.value = resultButton.dataset.label || resultButton.textContent.trim();
       this.#renderMapSearchResults([]);
+      searchInput.focus();
+    });
+
+    // Keyboard navigation for search results (ArrowUp / ArrowDown / Enter / Escape)
+    searchInput.addEventListener('keydown', (event) => {
+      const items = searchResults.querySelectorAll('button[data-lat]');
+      if (!items.length) return;
+
+      const current = searchResults.querySelector('button[data-lat]:focus');
+      const idx = [...items].indexOf(current);
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        (items[idx + 1] ?? items[0]).focus();
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        (items[idx - 1] ?? items[items.length - 1]).focus();
+      } else if (event.key === 'Escape') {
+        this.#renderMapSearchResults([]);
+        searchInput.blur();
+      }
+    });
+
+    searchResults.addEventListener('keydown', (event) => {
+      const items = searchResults.querySelectorAll('button[data-lat]');
+      const current = document.activeElement;
+      const idx = [...items].indexOf(current);
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        (items[idx + 1] ?? items[0]).focus();
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        (idx <= 0 ? searchInput : items[idx - 1]).focus();
+      } else if (event.key === 'Escape') {
+        this.#renderMapSearchResults([]);
+        searchInput.focus();
+      } else if (event.key === 'Enter' && current?.dataset?.lat) {
+        event.preventDefault();
+        const latitude = Number.parseFloat(current.dataset.lat);
+        const longitude = Number.parseFloat(current.dataset.lng);
+        if (!Number.isNaN(latitude) && !Number.isNaN(longitude)) {
+          this.#placeMarker(latitude, longitude);
+          searchInput.value = current.dataset.label || current.textContent.trim();
+          this.#renderMapSearchResults([]);
+          searchInput.focus();
+        }
+      }
     });
 
     searchInput.addEventListener('blur', () => {

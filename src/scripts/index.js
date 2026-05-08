@@ -14,4 +14,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('hashchange', async () => {
     await app.renderPage();
   });
+
+  const skipToContent = document.querySelector('.skip-to-content');
+  if (skipToContent) {
+    skipToContent.addEventListener('click', (event) => {
+      event.preventDefault();
+      document.querySelector('#main-content').focus();
+    });
+  }
 });

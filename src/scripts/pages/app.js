@@ -86,9 +86,10 @@ class App {
 
     if (!document.startViewTransition || this.#isFirstRender) {
       await renderContent();
-      this.#applyPostRenderAccessibility(url);
+      const isFirst = this.#isFirstRender;
       this.#lastRoute = url;
       this.#isFirstRender = false;
+      this.#applyPostRenderAccessibility(url, isFirst);
       return;
     }
 
@@ -103,16 +104,18 @@ class App {
       await transition.finished;
     } finally {
       document.documentElement.removeAttribute('data-view-transition-direction');
-      this.#applyPostRenderAccessibility(url);
       this.#lastRoute = url;
       this.#isFirstRender = false;
+      this.#applyPostRenderAccessibility(url, false);
     }
   }
 
-  #applyPostRenderAccessibility(route) {
+  #applyPostRenderAccessibility(route, isFirstRender = false) {
     this.#setDocumentTitle(route);
     this.#markActiveNavigation(route);
-    this.#content.focus({ preventScroll: true });
+    if (!isFirstRender) {
+      this.#content.focus({ preventScroll: true });
+    }
   }
 
   #setDocumentTitle(route) {
