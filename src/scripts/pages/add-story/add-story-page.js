@@ -610,6 +610,11 @@ export default class AddStoryPage {
         },
       });
 
+      if (!Array.isArray(window.currentStreams)) {
+        window.currentStreams = [];
+      }
+      window.currentStreams.push(this.#cameraStream);
+
       this.#cameraVideo.srcObject = this.#cameraStream;
       await this.#cameraVideo.play();
       await this.#populateCameraDeviceList(this.#cameraStream);

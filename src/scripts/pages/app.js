@@ -1,6 +1,7 @@
 import routes from '../routes/routes';
 import '../components/main-header.js'
 import { getActiveRoute } from '../routes/url-parser';
+import NotFoundPage from './not-found/not-found-page.js';
 
 class App {
   #content = null;
@@ -69,7 +70,7 @@ class App {
 
   async renderPage() {
     const url = getActiveRoute();
-    const route = routes[url];
+    const route = routes[url] || (() => new NotFoundPage());
 
     const page = route();
     if (!page) return;
