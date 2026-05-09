@@ -1,4 +1,5 @@
 import { createIcons, icons } from 'lucide';
+import '../../components/my-toast.js';
 import Map from '../../utils/map.js';
 import HomePresenter from './home-presenter.js';
 import StoryRepository from '../../data/story-repository.js';
@@ -634,13 +635,24 @@ export default class HomePage {
   }
 
   showToast(type, message) {
-    const color = type === 'error' ? '#ffe1e1' : '#e6ffef';
-    const toast = document.createElement('div');
-    toast.textContent = message;
-    toast.style.cssText = `position:fixed;right:16px;bottom:16px;background:${color};padding:12px 16px;border-radius:8px;z-index:9999;box-shadow:0 4px 14px rgba(0,0,0,0.15);`;
+    const toast = document.createElement('my-toast');
+    toast.setAttribute('type', type);
+    toast.setAttribute('message', message);
+
     document.body.appendChild(toast);
+
+    const toastContainer = toast.querySelector('.toast__container');
+    if (toastContainer) {
+      toastContainer.classList.remove('slide-out');
+    }
+
     setTimeout(() => {
-      toast.remove();
+      if (toastContainer) {
+        toastContainer.classList.add('slide-out');
+        toastContainer.onanimationend = () => toast.remove();
+      } else {
+        toast.remove();
+      }
     }, 2400);
   }
 }
