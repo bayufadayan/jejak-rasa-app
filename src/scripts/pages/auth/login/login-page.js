@@ -138,14 +138,4 @@ export default class LoginPage {
     loginFailed(message) {
         this.showToast("error", message)
     }
-
-    
-    // #formValidation(email, password) {
-    //   if (!email || !password) {
-    //     return {
-    //       validation: "error",
-    //       message: "Kolom wajib diisi"
-    //     }
-    //   }
-    // }
 }

@@ -13,7 +13,6 @@ export default class NotFoundPage {
     }
     
     async afterRender() {
-        // Isi logika kode eventListener lainnya jika diperlukan
         const navbar = document.getElementsByClassName("main__navbar")[0];
         if (navbar) {
             navbar.classList.remove("hide-me");

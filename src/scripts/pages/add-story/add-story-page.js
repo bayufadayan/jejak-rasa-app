@@ -4,6 +4,20 @@ import '../../components/back-link.js';
 import '../../components/field-group.js';
 import '../../components/my-toast.js';
 import AddStoryPresenter from './add-story-presenter.js';
+import {
+  PREVIEW_HEIGHT,
+  PREVIEW_WIDTH,
+  canvasToBlob,
+  escapeHtml,
+  extractResultLatitude,
+  extractResultLongitude,
+  getCameraButtonContent,
+  getLoadingButtonContent,
+  loadImage,
+  normalizeFilename,
+  parseOptionalCoordinate,
+  validatePhotoFile,
+} from './add-story-page-utils.js';
 import StoryRepository from '../../data/story-repository.js';
 import Map from '../../utils/map.js';
 
@@ -238,7 +252,6 @@ export default class AddStoryPage {
       searchInput.focus();
     });
 
-    // Keyboard navigation for search results (ArrowUp / ArrowDown / Enter / Escape)
     searchInput.addEventListener('keydown', (event) => {
       const items = searchResults.querySelectorAll('button[data-lat]');
       if (!items.length) return;
@@ -334,15 +347,15 @@ export default class AddStoryPage {
 
     searchResults.innerHTML = results
       .map((result) => {
-        const latitude = this.#extractResultLatitude(result);
-        const longitude = this.#extractResultLongitude(result);
+        const latitude = extractResultLatitude(result);
+        const longitude = extractResultLongitude(result);
 
         if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
           return '';
         }
 
         const label = result.label || 'Lokasi tanpa nama';
-        const safeLabel = this.#escapeHtml(label);
+        const safeLabel = escapeHtml(label);
         return `
           <li>
             <button
@@ -374,39 +387,6 @@ export default class AddStoryPage {
     if (shouldFly) {
       this.#map.flyTo([latitude, longitude]);
     }
-  }
-
-  #escapeHtml(text) {
-    return text
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
-  }
-
-  #extractResultLatitude(result) {
-    return Number.parseFloat(
-      result?.y
-      ?? result?.lat
-      ?? result?.latitude
-      ?? result?.raw?.lat
-      ?? result?.raw?.latitude
-      ?? '',
-    );
-  }
-
-  #extractResultLongitude(result) {
-    return Number.parseFloat(
-      result?.x
-      ?? result?.lng
-      ?? result?.lon
-      ?? result?.longitude
-      ?? result?.raw?.lon
-      ?? result?.raw?.lng
-      ?? result?.raw?.longitude
-      ?? '',
-    );
   }
 
   #setupCoordinateInputs() {
@@ -483,13 +463,13 @@ export default class AddStoryPage {
     });
 
     latitudeInput.addEventListener('input', () => {
-      if (!latitudeInput.value.trim() || this.#isValidOptionalCoordinate(latitudeInput.value)) {
+      if (!latitudeInput.value.trim() || parseOptionalCoordinate(latitudeInput.value).isValid) {
         this.#setFieldError('latitude', '');
       }
     });
 
     longitudeInput.addEventListener('input', () => {
-      if (!longitudeInput.value.trim() || this.#isValidOptionalCoordinate(longitudeInput.value)) {
+      if (!longitudeInput.value.trim() || parseOptionalCoordinate(longitudeInput.value).isValid) {
         this.#setFieldError('longitude', '');
       }
     });
@@ -593,7 +573,7 @@ export default class AddStoryPage {
     await this.#stopCamera();
     this.#cameraPanel.hidden = true;
     this.#isCameraOpen = false;
-    this.#cameraOpenButton.innerHTML = this.#getCameraButtonContent();
+    this.#cameraOpenButton.innerHTML = getCameraButtonContent();
     createIcons({ icons });
   }
 
@@ -671,36 +651,17 @@ export default class AddStoryPage {
   }
 
   async #updatePhotoPreviewFromFile(file) {
-    const image = await this.#loadImage(file);
-    const filename = this.#normalizeFilename(file.name || `gallery-${Date.now()}.jpg`);
+    const image = await loadImage(file);
+    const filename = normalizeFilename(file.name || `gallery-${Date.now()}.jpg`);
 
     await this.#renderSourceToPreview(image, image.naturalWidth, image.naturalHeight, filename);
-  }
-
-  #loadImage(file) {
-    return new Promise((resolve, reject) => {
-      const image = new Image();
-      const objectUrl = URL.createObjectURL(file);
-
-      image.onload = () => {
-        URL.revokeObjectURL(objectUrl);
-        resolve(image);
-      };
-
-      image.onerror = (error) => {
-        URL.revokeObjectURL(objectUrl);
-        reject(error);
-      };
-
-      image.src = objectUrl;
-    });
   }
 
   async #renderSourceToPreview(source, sourceWidth, sourceHeight, filename) {
     const canvas = this.#photoPreviewCanvas;
     const context = canvas.getContext('2d');
-    const targetWidth = 1280;
-    const targetHeight = 800;
+    const targetWidth = PREVIEW_WIDTH;
+    const targetHeight = PREVIEW_HEIGHT;
 
     canvas.width = targetWidth;
     canvas.height = targetHeight;
@@ -728,13 +689,13 @@ export default class AddStoryPage {
 
     context.drawImage(source, drawX, drawY, drawWidth, drawHeight);
 
-    const blob = await this.#canvasToBlob(canvas);
+    const blob = await canvasToBlob(canvas);
     if (!blob) {
       throw new Error('Canvas snapshot failed');
     }
 
     const photoFile = new File([blob], filename, { type: blob.type || 'image/jpeg' });
-    const validationError = this.#validatePhotoFile(photoFile);
+    const validationError = validatePhotoFile(photoFile);
 
     if (validationError) {
       throw new Error(validationError);
@@ -744,17 +705,6 @@ export default class AddStoryPage {
     this.#photoFile = photoFile;
     this.#setFieldError('photo', '');
     this.#showPhotoPreview();
-  }
-
-  #canvasToBlob(canvas) {
-    return new Promise((resolve) => {
-      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.92);
-    });
-  }
-
-  #normalizeFilename(filename) {
-    const baseName = filename.replace(/\.[^.]+$/, '') || 'story-photo';
-    return `${baseName}.jpg`;
   }
 
   #resetPhotoPreview() {
@@ -770,8 +720,8 @@ export default class AddStoryPage {
     }
 
     const context = this.#photoPreviewCanvas.getContext('2d');
-    this.#photoPreviewCanvas.width = 1280;
-    this.#photoPreviewCanvas.height = 800;
+    this.#photoPreviewCanvas.width = PREVIEW_WIDTH;
+    this.#photoPreviewCanvas.height = PREVIEW_HEIGHT;
     context.fillStyle = '#f8ecd8';
     context.fillRect(0, 0, this.#photoPreviewCanvas.width, this.#photoPreviewCanvas.height);
 
@@ -782,13 +732,6 @@ export default class AddStoryPage {
     const previewEmpty = document.querySelector('#preview-empty');
     previewFigure.style.display = 'none';
     previewEmpty.hidden = false;
-  }
-
-  #getCameraButtonContent() {
-    return `
-      <i data-lucide="camera" aria-hidden="true"></i>
-      <span>Ambil dari Kamera</span>
-    `;
   }
 
   #showPhotoPreview() {
@@ -822,8 +765,8 @@ export default class AddStoryPage {
 
   #validateStoryForm({ description, photoFile, latitudeValue, longitudeValue }) {
     let isValid = true;
-    const latitude = this.#parseOptionalCoordinate(latitudeValue);
-    const longitude = this.#parseOptionalCoordinate(longitudeValue);
+    const latitude = parseOptionalCoordinate(latitudeValue);
+    const longitude = parseOptionalCoordinate(longitudeValue);
 
     this.#clearFormErrors();
 
@@ -832,7 +775,7 @@ export default class AddStoryPage {
       isValid = false;
     }
 
-    const photoValidationError = this.#validatePhotoFile(photoFile);
+    const photoValidationError = validatePhotoFile(photoFile);
     if (photoValidationError) {
       this.#setFieldError('photo', photoValidationError);
       isValid = false;
@@ -855,51 +798,6 @@ export default class AddStoryPage {
       latitude: latitude.value,
       longitude: longitude.value,
     };
-  }
-
-  #parseOptionalCoordinate(value) {
-    const trimmedValue = value.trim();
-
-    if (!trimmedValue) {
-      return {
-        isValid: true,
-        value: null,
-      };
-    }
-
-    const parsedValue = Number(trimmedValue);
-
-    if (!Number.isFinite(parsedValue)) {
-      return {
-        isValid: false,
-        value: null,
-      };
-    }
-
-    return {
-      isValid: true,
-      value: parsedValue,
-    };
-  }
-
-  #isValidOptionalCoordinate(value) {
-    return this.#parseOptionalCoordinate(value).isValid;
-  }
-
-  #validatePhotoFile(photoFile) {
-    if (!(photoFile instanceof File)) {
-      return 'Foto wajib diisi';
-    }
-
-    if (!photoFile.type || !photoFile.type.startsWith('image/')) {
-      return 'Foto harus berupa file gambar';
-    }
-
-    if (photoFile.size > 1024 * 1024) {
-      return 'Ukuran foto maksimal 1 MB';
-    }
-
-    return '';
   }
 
   #clearFormErrors() {
@@ -946,30 +844,7 @@ export default class AddStoryPage {
 
     if (isLoading) {
       submitBtn.classList.add('main__btn--loading');
-      submitBtn.innerHTML = `
-        <span style="display:flex; align-items:center; gap:8px; justify-content:center;">
-          <svg width="18" height="18" viewBox="0 0 50 50">
-            <circle
-              cx="25"
-              cy="25"
-              r="20"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="4"
-              stroke-linecap="round"
-              stroke-dasharray="90 150">
-              <animateTransform
-                attributeName="transform"
-                type="rotate"
-                from="0 25 25"
-                to="360 25 25"
-                dur="1s"
-                repeatCount="indefinite" />
-            </circle>
-          </svg>
-          <span>Mengunggah...</span>
-        </span>
-      `;
+      submitBtn.innerHTML = getLoadingButtonContent();
     } else {
       submitBtn.classList.remove('main__btn--loading');
       submitBtn.textContent = 'Bagikan cerita';
