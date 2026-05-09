@@ -4,8 +4,10 @@ export default class HomePresenter {
   #currentPage = 1;
   #isFetching = false;
   #hasMoreStories = true;
-  #currentStories = [];
-  #locationStories = [];
+  #allStories = [];
+  #searchQuery = '';
+  #sortBy = 'newest';
+  #filterBy = 'all';
 
   constructor({ view, model }) {
     this.#view = view;
@@ -20,7 +22,7 @@ export default class HomePresenter {
 
     if (!isLoadMore) {
       this.#currentPage = 1;
-      this.#currentStories = [];
+      this.#allStories = [];
       this.#hasMoreStories = true;
       this.#view.showLoading();
     } else {
@@ -28,41 +30,29 @@ export default class HomePresenter {
     }
 
     try {
-      console.log(`HomePresenter: fetching stories from API (Page ${this.#currentPage})`);
-      
-      const fetchPromises = [
-        this.#model.getStories({ page: this.#currentPage, size: 12, location: 0 }),
-      ];
-
-      // Only fetch location stories once on initial load
       if (!isLoadMore) {
-        fetchPromises.push(this.#model.getStories({ size: 100, location: 1 }));
+        const localStories = await this.#model.getMergedStories();
+        this.#allStories = localStories;
+        this.#notifyView();
       }
 
-      const [storiesResponse, locationStoriesResponse] = await Promise.all(fetchPromises);
+      const storiesResponse = await this.#model.fetchStoriesPage({
+        page: this.#currentPage,
+        size: 12,
+        location: 0,
+      });
 
       if (!storiesResponse.ok) {
         throw new Error(storiesResponse.message || 'Gagal memuat daftar cerita');
       }
 
-      if (!isLoadMore && locationStoriesResponse && !locationStoriesResponse.ok) {
-        throw new Error(locationStoriesResponse.message || 'Gagal memuat cerita berlokasi');
-      }
-
       const newStories = storiesResponse.listStory || [];
-      
       if (newStories.length < 12) {
         this.#hasMoreStories = false;
       }
 
-      this.#currentStories = [...this.#currentStories, ...newStories];
-
-      if (!isLoadMore && locationStoriesResponse) {
-        this.#locationStories = (locationStoriesResponse.listStory || []).filter((story) => this.#hasValidCoordinate(story));
-      }
-
-      this.#view.populateStories(this.#currentStories, this.#locationStories, this.#hasMoreStories);
-      
+      this.#allStories = await this.#model.getMergedStories();
+      this.#notifyView();
       this.#currentPage++;
     } catch (error) {
       console.error('HomePresenter: error:', error);
@@ -73,14 +63,68 @@ export default class HomePresenter {
     }
   }
 
-  #hasValidCoordinate(story) {
-    const latitude = Number.parseFloat(story?.lat);
-    const longitude = Number.parseFloat(story?.lon);
-    return (
-      Number.isFinite(latitude) &&
-      Number.isFinite(longitude) &&
-      latitude >= -90 && latitude <= 90 &&
-      longitude >= -180 && longitude <= 180
-    );
+  setSearchQuery(searchQuery) {
+    this.#searchQuery = (searchQuery || '').trim().toLowerCase();
+    this.#notifyView();
+  }
+
+  setSortBy(sortBy) {
+    this.#sortBy = sortBy || 'newest';
+    this.#notifyView();
+  }
+
+  setFilterBy(filterBy) {
+    this.#filterBy = filterBy || 'all';
+    this.#notifyView();
+  }
+
+  async removeStory(id) {
+    try {
+      await this.#model.removeStoryFromLocal(id);
+      this.#allStories = await this.#model.getMergedStories();
+      this.#notifyView();
+    } catch (error) {
+      console.error('removeStory: error:', error);
+      this.#view.showToast('error', error.message || 'Gagal menghapus story dari IndexedDB');
+    }
+  }
+
+  #notifyView() {
+    const filteredStories = this.#getFilteredStories();
+    const locationStories = filteredStories.filter((story) => this.#model.hasValidCoordinate(story));
+    this.#view.populateStories(filteredStories, locationStories, this.#hasMoreStories);
+  }
+
+  #getFilteredStories() {
+    const text = this.#searchQuery;
+
+    let stories = [...this.#allStories];
+
+    if (text) {
+      stories = stories.filter((story) => {
+        const name = (story.name || '').toLowerCase();
+        const description = (story.description || '').toLowerCase();
+        return name.includes(text) || description.includes(text);
+      });
+    }
+
+    if (this.#filterBy === 'with-location') {
+      stories = stories.filter((story) => this.#model.hasValidCoordinate(story));
+    } else if (this.#filterBy === 'without-location') {
+      stories = stories.filter((story) => !this.#model.hasValidCoordinate(story));
+    } else if (this.#filterBy === 'pending') {
+      stories = stories.filter((story) => story.isPending);
+    }
+
+    stories.sort((first, second) => {
+      const firstDate = new Date(first.createdAt || 0).getTime();
+      const secondDate = new Date(second.createdAt || 0).getTime();
+      if (this.#sortBy === 'oldest') {
+        return firstDate - secondDate;
+      }
+      return secondDate - firstDate;
+    });
+
+    return stories;
   }
 }

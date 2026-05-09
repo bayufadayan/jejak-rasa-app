@@ -4,7 +4,7 @@ import '../../components/back-link.js';
 import '../../components/field-group.js';
 import '../../components/my-toast.js';
 import AddStoryPresenter from './add-story-presenter.js';
-import * as API from '../../data/api.js';
+import StoryRepository from '../../data/story-repository.js';
 import Map from '../../utils/map.js';
 
 export default class AddStoryPage {
@@ -144,7 +144,7 @@ export default class AddStoryPage {
 
     this.#presenter = new AddStoryPresenter({
       view: this,
-      model: API,
+      model: StoryRepository,
     });
 
     this.#setupForm();
@@ -999,6 +999,11 @@ export default class AddStoryPage {
   }
 
   addStorySuccessfully(message) {
+    this.showToast('success', message);
+    location.hash = '/';
+  }
+
+  addStoryPending(message) {
     this.showToast('success', message);
     location.hash = '/';
   }

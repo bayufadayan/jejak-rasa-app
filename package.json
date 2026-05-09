@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@maptiler/leaflet-maptilersdk": "^4.1.1",
+    "idb": "^8.0.3",
     "leaflet": "^1.9.4",
     "leaflet-geosearch": "^4.4.0",
     "lucide": "^1.12.0"

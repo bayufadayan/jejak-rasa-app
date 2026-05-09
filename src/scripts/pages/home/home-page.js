@@ -1,7 +1,7 @@
 import { createIcons, icons } from 'lucide';
-import * as API from '../../data/api.js';
 import Map from '../../utils/map.js';
 import HomePresenter from './home-presenter.js';
+import StoryRepository from '../../data/story-repository.js';
 
 export default class HomePage {
   #presenter = null;
@@ -61,10 +61,17 @@ export default class HomePage {
                 <h2 class="home__section-title">Cerita yang Pernah Dibuat</h2>
               </div>
               <div class="home__section-actions">
-                <a href="#/add-story" class="home__add-btn">
-                  <i data-lucide="plus" aria-hidden="true"></i>
-                  <span>Tambah Cerita Baru</span>
-                </a>
+                <input id="home-search-input" type="search" placeholder="Cari nama/deskripsi story..." class="add-story__map-search-input" style="min-width: 240px;" />
+                <select id="home-sort-select" class="add-story__map-search-input" style="min-width: 150px;">
+                  <option value="newest">Terbaru</option>
+                  <option value="oldest">Terlama</option>
+                </select>
+                <select id="home-filter-select" class="add-story__map-search-input" style="min-width: 170px;">
+                  <option value="all">Semua</option>
+                  <option value="with-location">Dengan Lokasi</option>
+                  <option value="without-location">Tanpa Lokasi</option>
+                  <option value="pending">Pending Sync</option>
+                </select>
               </div>
             </div>
 
@@ -88,10 +95,11 @@ export default class HomePage {
 
     this.#presenter = new HomePresenter({
       view: this,
-      model: API,
+      model: StoryRepository,
     });
 
     await this.#presenter.getStories();
+    this.#setupListInteractivityControls();
   }
 
   showLoading() {
@@ -136,8 +144,9 @@ export default class HomePage {
     if (totalEl) totalEl.textContent = `${stories.length} cerita`;
     if (activeEl) activeEl.textContent = `${locationStories.length} titik`;
 
-    // Initialize map
+    // Initialize map and render current markers.
     await this.#setupMap();
+    this.#renderMapMarkers();
 
     // Render Story Grid
     const container = document.getElementById('home-stories-container');
@@ -256,39 +265,46 @@ export default class HomePage {
 
       this.#map.invalidateSize();
 
-      this.#markers = {};
-
-      const coordinates = this.#locationStories
-        .map((story) => this.#toCoordinate(story))
-        .filter(Boolean);
-
-      this.#locationStories.forEach((story) => {
-        const coordinate = this.#toCoordinate(story);
-        if (!coordinate) return;
-
-        const popupContent = this.#buildMarkerPopup(story);
-        const marker = this.#map.addMarker(coordinate, {}, {
-          content: popupContent,
-          options: {
-            maxWidth: 280,
-            closeButton: true,
-            autoPan: true,
-          },
-        });
-        
-        this.#markers[story.id] = marker;
-      });
-
       this.#setupMapToolbar();
-
-      if (coordinates.length === 1) {
-        this.#map.flyTo(coordinates[0], 8);
-      } else if (coordinates.length > 1) {
-        this.#map.fitBounds(coordinates);
-      }
     } catch (error) {
       console.error('HomePage map error:', error);
       mapSurface.innerHTML = '';
+    }
+  }
+
+  #renderMapMarkers() {
+    if (!this.#map) {
+      return;
+    }
+
+    Object.values(this.#markers).forEach((marker) => marker.remove());
+    this.#markers = {};
+
+    const coordinates = this.#locationStories
+      .map((story) => this.#toCoordinate(story))
+      .filter(Boolean);
+
+    this.#locationStories.forEach((story) => {
+      const coordinate = this.#toCoordinate(story);
+      if (!coordinate) return;
+
+      const popupContent = this.#buildMarkerPopup(story);
+      const marker = this.#map.addMarker(coordinate, {}, {
+        content: popupContent,
+        options: {
+          maxWidth: 280,
+          closeButton: true,
+          autoPan: true,
+        },
+      });
+
+      this.#markers[story.id] = marker;
+    });
+
+    if (coordinates.length === 1) {
+      this.#map.flyTo(coordinates[0], 8);
+    } else if (coordinates.length > 1) {
+      this.#map.fitBounds(coordinates);
     }
   }
 
@@ -444,9 +460,13 @@ export default class HomePage {
     const imageUrl = this.#escapeAttribute(story.photoUrl || '');
     const createdAt = this.#formatDate(story.createdAt);
     const locationText = this.#formatStoryLocation(story);
+    const syncBadge = story.isPending ? '<span class="home__story-location" style="background:#ffe7b8;">Pending Sync</span>' : '';
+    const detailAction = story.isPending
+      ? '<span class="home__story-link" aria-disabled="true">Menunggu sinkronisasi</span>'
+      : `<a class="home__story-link" href="#/story/${story.id}">Lihat detail</a>`;
 
     return /* html */ `
-      <a id="story-card-${story.id}" class="home__story-card" href="#/story/${story.id}" aria-label="Buka detail cerita ${title}">
+      <article id="story-card-${story.id}" class="home__story-card" aria-label="Kartu cerita ${title}">
         <figure class="home__story-figure">
           <img class="home__story-image" src="${imageUrl}" alt="Foto story ${title}" />
         </figure>
@@ -456,12 +476,16 @@ export default class HomePage {
             <span class="home__story-location">${locationText}</span>
             <span class="home__story-time">${createdAt}</span>
           </div>
+          ${syncBadge}
 
           <h3 class="home__story-title">${title}</h3>
           <p class="home__story-excerpt">${description}</p>
-          <span class="home__story-link">Lihat detail</span>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem;">
+            ${detailAction}
+            <button type="button" class="main__btn" data-delete-story-id="${story.id}" style="padding: 0.4em 0.8em; font-size: 0.9em; margin-top: 0;">Hapus Lokal</button>
+          </div>
         </div>
-      </a>
+      </article>
     `;
   }
 
@@ -538,5 +562,58 @@ export default class HomePage {
 
   #escapeAttribute(text) {
     return this.#escapeHtml(text).replaceAll('`', '&#96;');
+  }
+
+  #setupListInteractivityControls() {
+    const searchInput = document.getElementById('home-search-input');
+    const sortSelect = document.getElementById('home-sort-select');
+    const filterSelect = document.getElementById('home-filter-select');
+    const storiesContainer = document.getElementById('home-stories-container');
+
+    if (searchInput) {
+      searchInput.addEventListener('input', (event) => {
+        this.#presenter.setSearchQuery(event.target.value);
+      });
+    }
+
+    if (sortSelect) {
+      sortSelect.addEventListener('change', (event) => {
+        this.#presenter.setSortBy(event.target.value);
+      });
+    }
+
+    if (filterSelect) {
+      filterSelect.addEventListener('change', (event) => {
+        this.#presenter.setFilterBy(event.target.value);
+      });
+    }
+
+    if (storiesContainer) {
+      storiesContainer.addEventListener('click', (event) => {
+        const targetElement = event.target instanceof Element ? event.target : null;
+        const deleteButton = targetElement?.closest('[data-delete-story-id]');
+        if (!deleteButton) {
+          return;
+        }
+
+        const storyId = deleteButton.getAttribute('data-delete-story-id');
+        if (!storyId) {
+          return;
+        }
+
+        this.#presenter.removeStory(storyId);
+      });
+    }
+  }
+
+  showToast(type, message) {
+    const color = type === 'error' ? '#ffe1e1' : '#e6ffef';
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    toast.style.cssText = `position:fixed;right:16px;bottom:16px;background:${color};padding:12px 16px;border-radius:8px;z-index:9999;box-shadow:0 4px 14px rgba(0,0,0,0.15);`;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.remove();
+    }, 2400);
   }
 }

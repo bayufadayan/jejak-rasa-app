@@ -24,7 +24,7 @@ export default class AddStoryPresenter {
     this.#view.showLoading(true);
 
     try {
-      const response = await this.#model.addStory({
+      const response = await this.#model.createStory({
         description,
         photo,
         lat,
@@ -34,6 +34,11 @@ export default class AddStoryPresenter {
       if (!response.ok) {
         console.error('addStory: response:', response);
         this.#view.addStoryFailed(response.message || 'Gagal mengunggah cerita');
+        return;
+      }
+
+      if (response.isPending) {
+        this.#view.addStoryPending(response.message || 'Cerita disimpan offline.');
         return;
       }
 

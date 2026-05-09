@@ -1,88 +1,114 @@
-import { precacheAndRoute } from 'https://storage.googleapis.com/workbox-cdn/releases/6.5.4/workbox-precaching.prod.mjs';
-import { registerRoute } from 'https://storage.googleapis.com/workbox-cdn/releases/6.5.4/workbox-routing.prod.mjs';
-import { CacheableResponsePlugin } from 'https://storage.googleapis.com/workbox-cdn/releases/6.5.4/workbox-cacheable-response.prod.mjs';
-import { NetworkFirst, CacheFirst, StaleWhileRevalidate } from 'https://storage.googleapis.com/workbox-cdn/releases/6.5.4/workbox-strategies.prod.mjs';
+// Simple caching strategies without external dependencies
+const CACHE_NAMES = {
+  google_fonts: 'google-fonts-v1',
+  fontawesome: 'fontawesome-v1',
+  avatars: 'avatars-api-v1',
+  story_api: 'story-api-v1',
+  story_images: 'story-api-images-v1',
+  maptiler: 'maptiler-api-v1',
+};
 
-// Do precaching
-const manifest = self.__WB_MANIFEST;
-if (manifest) {
-  precacheAndRoute(manifest);
+// Cache First strategy
+async function cacheFirst(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    return cached || new Response('Offline', { status: 503 });
+  }
 }
 
-// Runtime caching
-registerRoute(
-  ({ url }) => {
-    return url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com';
-  },
-  new CacheFirst({
-    cacheName: 'google-fonts',
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200],
-      }),
-    ],
-  }),
-);
+// Network First strategy
+async function networkFirst(request, cacheName) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(cacheName);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    const cache = await caches.open(cacheName);
+    return cache.match(request) || new Response('Offline', { status: 503 });
+  }
+}
 
-registerRoute(
-  ({ url }) => {
-    return url.origin === 'https://cdnjs.cloudflare.com' || url.origin.includes('fontawesome');
-  },
-  new CacheFirst({
-    cacheName: 'fontawesome',
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200],
-      }),
-    ],
-  }),
-);
+// Stale While Revalidate strategy
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
 
-registerRoute(
-  ({ url }) => {
-    return url.origin === 'https://ui-avatars.com';
-  },
-  new CacheFirst({
-    cacheName: 'avatars-api',
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200],
-      }),
-    ],
-  }),
-);
+  const fetchPromise = fetch(request).then((response) => {
+    if (response.ok) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  });
 
-registerRoute(
-  ({ request, url }) => {
-    return url.origin.includes('story-api.dicoding.dev') && request.destination !== 'image';
-  },
-  new NetworkFirst({
-    cacheName: 'story-api',
-  }),
-);
+  return cached || fetchPromise;
+}
 
-registerRoute(
-  ({ request, url }) => {
-    return url.origin.includes('story-api.dicoding.dev') && request.destination === 'image';
-  },
-  new StaleWhileRevalidate({
-    cacheName: 'story-api-images',
-  }),
-);
+// Install event: Cache essential files
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
 
-registerRoute(
-  ({ url }) => {
-    return url.origin.includes('maptiler');
-  },
-  new CacheFirst({
-    cacheName: 'maptiler-api',
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200],
-      }),
-    ],
-  }),
-);
+// Activate event: Clean up old caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((name) => !Object.values(CACHE_NAMES).includes(name))
+          .map((name) => caches.delete(name))
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+// Fetch event: Route requests with appropriate strategies
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Google Fonts - Cache First
+  if (url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com') {
+    return event.respondWith(cacheFirst(request, CACHE_NAMES.google_fonts));
+  }
+
+  // Font Awesome - Cache First
+  if (url.origin === 'https://cdnjs.cloudflare.com' || url.origin.includes('fontawesome')) {
+    return event.respondWith(cacheFirst(request, CACHE_NAMES.fontawesome));
+  }
+
+  // UI Avatars - Cache First
+  if (url.origin === 'https://ui-avatars.com') {
+    return event.respondWith(cacheFirst(request, CACHE_NAMES.avatars));
+  }
+
+  // Story API (non-image) - Network First
+  if (url.origin.includes('story-api.dicoding.dev') && request.destination !== 'image') {
+    return event.respondWith(networkFirst(request, CACHE_NAMES.story_api));
+  }
+
+  // Story API Images - Stale While Revalidate
+  if (url.origin.includes('story-api.dicoding.dev') && request.destination === 'image') {
+    return event.respondWith(staleWhileRevalidate(request, CACHE_NAMES.story_images));
+  }
+
+  // MapTiler - Cache First
+  if (url.origin.includes('maptiler')) {
+    return event.respondWith(cacheFirst(request, CACHE_NAMES.maptiler));
+  }
+});
 
 self.addEventListener('push', (event) => {
   const showNotification = async () => {
