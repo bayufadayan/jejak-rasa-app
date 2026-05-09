@@ -114,7 +114,7 @@ export default class SavedPage {
             <span class="home__story-time">${createdAt}</span>
           </div>
 
-          <h3 class="home__story-title">${title}</h3>
+          <h2 class="home__story-title">${title}</h2>
           <p class="home__story-excerpt">${description}</p>
           <div class="home__story-actions">
             <button
