@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
-import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -15,21 +14,5 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
-  plugins: [
-    VitePWA({
-      strategies: 'injectManifest',
-      srcDir: 'public',
-      filename: 'sw.js',
-      injectRegister: false,
-      manifest: false,
-      devOptions: {
-        enabled: true,
-        type: 'module',
-      },
-      injectManifest: {
-        globPatterns: [],
-        maximumFileSizeToCacheInBytes: 0,
-      },
-    }),
-  ],
+  plugins: [],
 });

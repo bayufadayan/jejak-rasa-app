@@ -8,6 +8,9 @@ const CACHE_NAMES = {
   maptiler: 'maptiler-api-v1',
 };
 
+// Placeholder used by vite-plugin-pwa injectManifest during production build.
+const manifest = self.__WB_MANIFEST;
+
 // Cache First strategy
 async function cacheFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
