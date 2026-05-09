@@ -1,50 +1,17 @@
 import { createIcons, icons } from 'lucide';
-import * as API from '../../data/api.js';
 import Map from '../../utils/map.js';
+import HomePresenter from './home-presenter.js';
+import StoryRepository from '../../data/story-repository.js';
 
 export default class HomePage {
+  #presenter = null;
   #map = null;
-  #stories = [];
   #locationStories = [];
-  #loadError = null;
+  #markers = {};
+  #observer = null;
+  #mapSearchDebounce = null;
 
   async render() {
-    this.#stories = [];
-    this.#locationStories = [];
-    this.#loadError = null;
-
-    try {
-      console.log('HomePage: fetching stories from API');
-
-      const [storiesResponse, locationStoriesResponse] = await Promise.all([
-        API.getStories({ page: 1, size: 12, location: 0 }),
-        API.getStories({ page: 1, size: 50, location: 1 }),
-      ]);
-
-      console.log('HomePage: stories response', storiesResponse);
-      console.log('HomePage: location stories response', locationStoriesResponse);
-
-      if (!storiesResponse.ok) {
-        throw new Error(storiesResponse.message || 'Gagal memuat daftar cerita');
-      }
-
-      if (!locationStoriesResponse.ok) {
-        throw new Error(locationStoriesResponse.message || 'Gagal memuat cerita berlokasi');
-      }
-
-      this.#stories = storiesResponse.listStory || [];
-      this.#locationStories = this.#stories.filter((story) => this.#hasValidCoordinate(story));
-
-      console.log('HomePage: stories loaded', {
-        totalStories: this.#stories.length,
-        locationStories: this.#locationStories.length,
-        locationStoriesResponseCount: (locationStoriesResponse.listStory || []).length,
-      });
-    } catch (error) {
-      console.error('HomePage render error:', error);
-      this.#loadError = error.message || 'Gagal memuat home page';
-    }
-
     return /* html */ `
       <section class="home container">
         <div class="home__shell">
@@ -64,23 +31,24 @@ export default class HomePage {
             <div class="home__map-card">
               <div class="home__map-status">
                 <span class="home__map-status-label">Status Peta</span>
-                <span class="home__map-status-value">
-                  ${this.#loadError
-                    ? 'Data cerita gagal dimuat, peta default tetap ditampilkan.'
-                    : this.#locationStories.length
-                      ? `${this.#locationStories.length} marker aktif`
-                      : 'Belum ada marker, peta tetap tampil.'}
-                </span>
+                <span class="home__map-status-value" id="home-map-status">Loading...</span>
+              </div>
+              <div class="add-story__map-toolbar" style="padding: 1rem 1.2rem 0; position: relative; z-index: 400;">
+                <div class="add-story__map-search">
+                  <label for="home-map-search-input" class="add-story__map-search-label">Filter lokasi cerita</label>
+                  <input id="home-map-search-input" type="search" class="add-story__map-search-input" placeholder="Contoh: Jakarta, Bandung..." autocomplete="off" />
+                  <ul id="home-map-search-results" class="add-story__map-search-results" hidden></ul>
+                </div>
               </div>
               <div class="home__map-surface" id="home-map"></div>
-              <div class="home__map-meta">
+              <div class="home__map-meta" id="home-map-meta">
                 <div>
                   <p class="home__meta-label">Total Story</p>
-                  <strong class="home__meta-value">${this.#stories.length} cerita</strong>
+                  <strong class="home__meta-value" id="meta-total">0 cerita</strong>
                 </div>
                 <div>
                   <p class="home__meta-label">Marker Aktif</p>
-                  <strong class="home__meta-value">${this.#locationStories.length} titik</strong>
+                  <strong class="home__meta-value" id="meta-active">0 titik</strong>
                 </div>
               </div>
             </div>
@@ -93,23 +61,23 @@ export default class HomePage {
                 <h2 class="home__section-title">Cerita yang Pernah Dibuat</h2>
               </div>
               <div class="home__section-actions">
-                <a href="#/add-story" class="home__add-btn">
-                  <i data-lucide="plus" aria-hidden="true"></i>
-                  <span>Tambah Cerita Baru</span>
-                </a>
+                <input id="home-search-input" type="search" placeholder="Cari nama/deskripsi story..." class="add-story__map-search-input" style="min-width: 240px;" />
+                <select id="home-sort-select" class="add-story__map-search-input" style="min-width: 150px;">
+                  <option value="newest">Terbaru</option>
+                  <option value="oldest">Terlama</option>
+                </select>
+                <select id="home-filter-select" class="add-story__map-search-input" style="min-width: 170px;">
+                  <option value="all">Semua</option>
+                  <option value="with-location">Dengan Lokasi</option>
+                  <option value="without-location">Tanpa Lokasi</option>
+                  <option value="pending">Pending Sync</option>
+                </select>
               </div>
             </div>
 
-            ${this.#stories.length ? `
-              <div class="home__story-grid">
-                ${this.#stories.map((story) => this.#buildStoryCard(story)).join('')}
-              </div>
-            ` : `
-              <div class="home__story-empty">
-                <p class="home__story-empty-title">Belum ada story untuk ditampilkan</p>
-                <p class="home__story-empty-text">Coba muat ulang atau buat cerita baru terlebih dahulu.</p>
-              </div>
-            `}
+            <div id="home-stories-container"></div>
+            
+            <div id="home-load-more-container" style="text-align: center; margin-top: 2rem;"></div>
           </section>
         </div>
       </section>
@@ -124,15 +92,168 @@ export default class HomePage {
 
     window.scrollTo(0, 0);
     createIcons({ icons });
+
+    this.#presenter = new HomePresenter({
+      view: this,
+      model: StoryRepository,
+    });
+
+    await this.#presenter.getStories();
+    this.#setupListInteractivityControls();
+  }
+
+  showLoading() {
+    const container = document.getElementById('home-stories-container');
+    if (container) {
+      container.innerHTML = `
+        <div class="home__story-empty" style="text-align: center; padding: 3rem;">
+          <p>Loading stories...</p>
+        </div>
+      `;
+    }
+    const loadMoreContainer = document.getElementById('home-load-more-container');
+    if (loadMoreContainer) {
+      loadMoreContainer.innerHTML = '';
+    }
+  }
+
+  showLoadMoreLoading() {
+    const loadMoreContainer = document.getElementById('home-load-more-container');
+    if (loadMoreContainer) {
+      loadMoreContainer.innerHTML = '<div style="padding: 2rem; text-align: center;"><i class="fas fa-spinner loader-button" style="animation: spin 1s linear infinite; font-size: 2rem; color: var(--color-primary);"></i><p style="margin-top: 1rem;">Memuat lebih banyak cerita...</p></div>';
+    }
+  }
+
+  hideLoading() {
+    // Optional, because populateStories will override the content.
+  }
+
+  async populateStories(stories, locationStories, hasMoreStories) {
+    this.#locationStories = locationStories;
+    
+    // Update Map Status and Meta
+    const statusEl = document.getElementById('home-map-status');
+    const totalEl = document.getElementById('meta-total');
+    const activeEl = document.getElementById('meta-active');
+
+    if (statusEl) {
+      statusEl.textContent = locationStories.length
+        ? `${locationStories.length} marker aktif`
+        : 'Belum ada marker, peta tetap tampil.';
+    }
+    if (totalEl) totalEl.textContent = `${stories.length} cerita`;
+    if (activeEl) activeEl.textContent = `${locationStories.length} titik`;
+
+    // Initialize map and render current markers.
     await this.#setupMap();
+    this.#renderMapMarkers();
+
+    // Render Story Grid
+    const container = document.getElementById('home-stories-container');
+    if (!container) return;
+
+    if (stories.length) {
+      container.innerHTML = `
+        <div class="home__story-grid">
+          ${stories.map((story) => this.#buildStoryCard(story)).join('')}
+        </div>
+      `;
+      
+      // Setup Interactivity: Sync list to map
+      stories.forEach((story) => {
+        const cardEl = document.getElementById(`story-card-${story.id}`);
+        if (cardEl && this.#markers[story.id]) {
+          cardEl.addEventListener('mouseenter', () => {
+            this.#markers[story.id].openPopup();
+            const coords = this.#toCoordinate(story);
+            if (coords) {
+              this.#map.flyTo(coords, 8);
+            }
+          });
+        }
+      });
+    } else {
+      container.innerHTML = `
+        <div class="home__story-empty">
+          <p class="home__story-empty-title">Belum ada story untuk ditampilkan</p>
+          <p class="home__story-empty-text">Coba muat ulang atau buat cerita baru terlebih dahulu.</p>
+        </div>
+      `;
+    }
+
+    const loadMoreContainer = document.getElementById('home-load-more-container');
+    if (loadMoreContainer) {
+      if (hasMoreStories && stories.length) {
+        loadMoreContainer.innerHTML = `
+          <div id="infinite-scroll-trigger" style="height: 20px; width: 100%;"></div>
+          <button
+            id="load-more-btn"
+            class="home__load-more-btn"
+            type="button"
+            aria-label="Muat lebih banyak cerita"
+          >
+            Muat Lebih Banyak
+          </button>
+        `;
+        
+        // Keyboard-accessible Load More button
+        const loadMoreBtn = document.getElementById('load-more-btn');
+        if (loadMoreBtn) {
+          loadMoreBtn.addEventListener('click', () => {
+            this.#presenter.getStories(true);
+          });
+        }
+        
+        // Setup Intersection Observer for Infinite Scroll
+        if (this.#observer) {
+          this.#observer.disconnect();
+        }
+        
+        const trigger = document.getElementById('infinite-scroll-trigger');
+        this.#observer = new IntersectionObserver((entries) => {
+          if (entries[0].isIntersecting) {
+            this.#observer.disconnect();
+            this.#presenter.getStories(true);
+          }
+        }, { rootMargin: '100px' });
+        
+        this.#observer.observe(trigger);
+        
+      } else if (!hasMoreStories && stories.length) {
+        loadMoreContainer.innerHTML = `
+          <div style="text-align: center; padding: 2rem; color: #666;">
+            <p>Semua cerita telah dimuat.</p>
+          </div>
+        `;
+      } else {
+        loadMoreContainer.innerHTML = '';
+      }
+    }
+  }
+
+  populateError(message) {
+    const container = document.getElementById('home-stories-container');
+    if (container) {
+      container.innerHTML = `
+        <div class="home__story-empty">
+          <p class="home__story-empty-title">Gagal memuat cerita</p>
+          <p class="home__story-empty-text">${message}</p>
+        </div>
+      `;
+    }
+
+    const statusEl = document.getElementById('home-map-status');
+    if (statusEl) {
+      statusEl.textContent = 'Data cerita gagal dimuat, peta default tetap ditampilkan.';
+    }
+    
+    this.#setupMap(); // Still setup map with empty coordinates
   }
 
   async #setupMap() {
     const mapSurface = document.getElementById('home-map');
-
-    if (!mapSurface) {
-      return;
-    }
+    if (!mapSurface) return;
+    if (this.#map) return;
 
     try {
       this.#map = await Map.build('#home-map', {
@@ -144,36 +265,193 @@ export default class HomePage {
 
       this.#map.invalidateSize();
 
-      const coordinates = this.#locationStories
-        .map((story) => this.#toCoordinate(story))
-        .filter(Boolean);
-
-      this.#locationStories.forEach((story) => {
-        const coordinate = this.#toCoordinate(story);
-        if (!coordinate) {
-          return;
-        }
-
-        const popupContent = this.#buildMarkerPopup(story);
-        this.#map.addMarker(coordinate, {}, {
-          content: popupContent,
-          options: {
-            maxWidth: 280,
-            closeButton: true,
-            autoPan: true,
-          },
-        });
-      });
-
-      if (coordinates.length === 1) {
-        this.#map.flyTo(coordinates[0], 8);
-      } else if (coordinates.length > 1) {
-        this.#map.fitBounds(coordinates);
-      }
+      this.#setupMapToolbar();
     } catch (error) {
       console.error('HomePage map error:', error);
       mapSurface.innerHTML = '';
     }
+  }
+
+  #renderMapMarkers() {
+    if (!this.#map) {
+      return;
+    }
+
+    Object.values(this.#markers).forEach((marker) => marker.remove());
+    this.#markers = {};
+
+    const coordinates = this.#locationStories
+      .map((story) => this.#toCoordinate(story))
+      .filter(Boolean);
+
+    this.#locationStories.forEach((story) => {
+      const coordinate = this.#toCoordinate(story);
+      if (!coordinate) return;
+
+      const popupContent = this.#buildMarkerPopup(story);
+      const marker = this.#map.addMarker(coordinate, {}, {
+        content: popupContent,
+        options: {
+          maxWidth: 280,
+          closeButton: true,
+          autoPan: true,
+        },
+      });
+
+      this.#markers[story.id] = marker;
+    });
+
+    if (coordinates.length === 1) {
+      this.#map.flyTo(coordinates[0], 8);
+    } else if (coordinates.length > 1) {
+      this.#map.fitBounds(coordinates);
+    }
+  }
+
+  #setupMapToolbar() {
+    const searchInput = document.querySelector('#home-map-search-input');
+    const searchResults = document.querySelector('#home-map-search-results');
+    if (!searchInput || !searchResults) return;
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(this.#mapSearchDebounce);
+      this.#mapSearchDebounce = setTimeout(async () => {
+        await this.#handleMapSearch(searchInput.value);
+      }, 350);
+    });
+
+    searchResults.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+      const clickedElement = event.target instanceof Element ? event.target : null;
+      const resultButton = clickedElement?.closest('button[data-lat][data-lng]');
+
+      if (!resultButton) return;
+
+      const latitude = Number.parseFloat(resultButton.dataset.lat || '');
+      const longitude = Number.parseFloat(resultButton.dataset.lng || '');
+
+      if (Number.isNaN(latitude) || Number.isNaN(longitude)) return;
+
+      this.#map.flyTo([latitude, longitude], 12);
+      searchInput.value = resultButton.dataset.label || resultButton.textContent.trim();
+      this.#renderMapSearchResults([]);
+      searchInput.focus();
+    });
+
+    // Keyboard navigation for search results
+    searchInput.addEventListener('keydown', (event) => {
+      const items = searchResults.querySelectorAll('button[data-lat]');
+      if (!items.length) return;
+
+      const current = searchResults.querySelector('button[data-lat]:focus');
+      const idx = [...items].indexOf(current);
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const next = items[idx + 1] ?? items[0];
+        next.focus();
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const prev = items[idx - 1] ?? items[items.length - 1];
+        prev.focus();
+      } else if (event.key === 'Escape') {
+        this.#renderMapSearchResults([]);
+        searchInput.blur();
+      }
+    });
+
+    searchResults.addEventListener('keydown', (event) => {
+      const items = searchResults.querySelectorAll('button[data-lat]');
+      const current = document.activeElement;
+      const idx = [...items].indexOf(current);
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const next = items[idx + 1] ?? items[0];
+        next.focus();
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const prev = idx <= 0 ? searchInput : items[idx - 1];
+        prev.focus();
+      } else if (event.key === 'Escape') {
+        this.#renderMapSearchResults([]);
+        searchInput.focus();
+      } else if (event.key === 'Enter' && current?.dataset?.lat) {
+        event.preventDefault();
+        const latitude = Number.parseFloat(current.dataset.lat);
+        const longitude = Number.parseFloat(current.dataset.lng);
+        if (!Number.isNaN(latitude) && !Number.isNaN(longitude)) {
+          this.#map.flyTo([latitude, longitude], 12);
+          searchInput.value = current.dataset.label || current.textContent.trim();
+          this.#renderMapSearchResults([]);
+          searchInput.focus();
+        }
+      }
+    });
+
+    searchInput.addEventListener('blur', () => {
+      setTimeout(() => this.#renderMapSearchResults([]), 120);
+    });
+
+    searchInput.addEventListener('focus', () => {
+      if (searchInput.value.trim()) this.#handleMapSearch(searchInput.value);
+    });
+
+    searchInput.addEventListener('search', () => this.#renderMapSearchResults([]));
+  }
+
+  async #handleMapSearch(query) {
+    if (!this.#map) return;
+    if (!query.trim()) {
+      this.#renderMapSearchResults([]);
+      return;
+    }
+
+    try {
+      const results = await this.#map.searchPlaces(query);
+      this.#renderMapSearchResults(results.slice(0, 5));
+    } catch (error) {
+      console.error('#handleMapSearch error:', error);
+      this.#renderMapSearchResults([]);
+    }
+  }
+
+  #renderMapSearchResults(results) {
+    const searchResults = document.querySelector('#home-map-search-results');
+    if (!searchResults) return;
+
+    if (!results.length) {
+      searchResults.hidden = true;
+      searchResults.innerHTML = '';
+      return;
+    }
+
+    searchResults.innerHTML = results
+      .map((result) => {
+        const latitude = Number.parseFloat(result?.y ?? result?.lat ?? result?.latitude ?? result?.raw?.lat ?? '');
+        const longitude = Number.parseFloat(result?.x ?? result?.lng ?? result?.lon ?? result?.longitude ?? result?.raw?.lon ?? '');
+
+        if (Number.isNaN(latitude) || Number.isNaN(longitude)) return '';
+
+        const label = result.label || 'Lokasi tanpa nama';
+        const safeLabel = this.#escapeHtml(label);
+        return `
+          <li>
+            <button
+              type="button"
+              class="add-story__map-search-result-btn"
+              data-lat="${latitude}"
+              data-lng="${longitude}"
+              data-label="${label.replace(/"/g, '&quot;')}"
+            >
+              ${safeLabel}
+            </button>
+          </li>
+        `;
+      })
+      .join('');
+
+    searchResults.hidden = false;
   }
 
   #buildStoryCard(story) {
@@ -182,9 +460,13 @@ export default class HomePage {
     const imageUrl = this.#escapeAttribute(story.photoUrl || '');
     const createdAt = this.#formatDate(story.createdAt);
     const locationText = this.#formatStoryLocation(story);
+    const syncBadge = story.isPending ? '<span class="home__story-location" style="background:#ffe7b8;">Pending Sync</span>' : '';
+    const detailAction = story.isPending
+      ? '<span class="home__story-link" aria-disabled="true">Menunggu sinkronisasi</span>'
+      : `<a class="home__story-link" href="#/story/${story.id}">Lihat detail</a>`;
 
     return /* html */ `
-      <a class="home__story-card" href="#/story/${story.id}" aria-label="Buka detail cerita ${title}">
+      <article id="story-card-${story.id}" class="home__story-card" aria-label="Kartu cerita ${title}">
         <figure class="home__story-figure">
           <img class="home__story-image" src="${imageUrl}" alt="Foto story ${title}" />
         </figure>
@@ -194,12 +476,16 @@ export default class HomePage {
             <span class="home__story-location">${locationText}</span>
             <span class="home__story-time">${createdAt}</span>
           </div>
+          ${syncBadge}
 
           <h3 class="home__story-title">${title}</h3>
           <p class="home__story-excerpt">${description}</p>
-          <span class="home__story-link">Lihat detail</span>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem;">
+            ${detailAction}
+            <button type="button" class="main__btn" data-delete-story-id="${story.id}" style="padding: 0.4em 0.8em; font-size: 0.9em; margin-top: 0;">Hapus Lokal</button>
+          </div>
         </div>
-      </a>
+      </article>
     `;
   }
 
@@ -221,7 +507,7 @@ export default class HomePage {
   }
 
   #formatStoryLocation(story) {
-    if (!this.#hasValidCoordinate(story)) {
+    if (!this.#toCoordinate(story)) {
       return 'Tanpa lokasi';
     }
 
@@ -231,22 +517,18 @@ export default class HomePage {
   }
 
   #toCoordinate(story) {
-    if (!this.#hasValidCoordinate(story)) {
-      return null;
-    }
-
-    return [Number.parseFloat(story.lat), Number.parseFloat(story.lon)];
-  }
-
-  #hasValidCoordinate(story) {
     const latitude = Number.parseFloat(story?.lat);
     const longitude = Number.parseFloat(story?.lon);
-    return (
+    
+    if (
       Number.isFinite(latitude) &&
       Number.isFinite(longitude) &&
       latitude >= -90 && latitude <= 90 &&
       longitude >= -180 && longitude <= 180
-    );
+    ) {
+      return [latitude, longitude];
+    }
+    return null;
   }
 
   #formatDate(dateValue) {
@@ -280,5 +562,58 @@ export default class HomePage {
 
   #escapeAttribute(text) {
     return this.#escapeHtml(text).replaceAll('`', '&#96;');
+  }
+
+  #setupListInteractivityControls() {
+    const searchInput = document.getElementById('home-search-input');
+    const sortSelect = document.getElementById('home-sort-select');
+    const filterSelect = document.getElementById('home-filter-select');
+    const storiesContainer = document.getElementById('home-stories-container');
+
+    if (searchInput) {
+      searchInput.addEventListener('input', (event) => {
+        this.#presenter.setSearchQuery(event.target.value);
+      });
+    }
+
+    if (sortSelect) {
+      sortSelect.addEventListener('change', (event) => {
+        this.#presenter.setSortBy(event.target.value);
+      });
+    }
+
+    if (filterSelect) {
+      filterSelect.addEventListener('change', (event) => {
+        this.#presenter.setFilterBy(event.target.value);
+      });
+    }
+
+    if (storiesContainer) {
+      storiesContainer.addEventListener('click', (event) => {
+        const targetElement = event.target instanceof Element ? event.target : null;
+        const deleteButton = targetElement?.closest('[data-delete-story-id]');
+        if (!deleteButton) {
+          return;
+        }
+
+        const storyId = deleteButton.getAttribute('data-delete-story-id');
+        if (!storyId) {
+          return;
+        }
+
+        this.#presenter.removeStory(storyId);
+      });
+    }
+  }
+
+  showToast(type, message) {
+    const color = type === 'error' ? '#ffe1e1' : '#e6ffef';
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    toast.style.cssText = `position:fixed;right:16px;bottom:16px;background:${color};padding:12px 16px;border-radius:8px;z-index:9999;box-shadow:0 4px 14px rgba(0,0,0,0.15);`;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.remove();
+    }, 2400);
   }
 }

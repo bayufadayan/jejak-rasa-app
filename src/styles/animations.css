@@ -19,3 +19,145 @@
         transform: translateX(20px);
     }
 }
+
+/* Custom SPA View Transitions */
+@keyframes move-out-left {
+    from {
+        opacity: 1;
+        transform: translateX(0%);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(-30%);
+    }
+}
+
+@keyframes move-in-right {
+    from {
+        opacity: 0;
+        transform: translateX(30%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0%);
+    }
+}
+
+@keyframes move-out-right {
+    from {
+        opacity: 1;
+        transform: translateX(0%);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(30%);
+    }
+}
+
+@keyframes move-in-left {
+    from {
+        opacity: 0;
+        transform: translateX(-30%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0%);
+    }
+}
+
+/* Forward Navigation */
+html[data-view-transition-direction="forward"]::view-transition-old(root) {
+    animation: move-out-left 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+html[data-view-transition-direction="forward"]::view-transition-new(root) {
+    animation: move-in-right 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Backward Navigation */
+html[data-view-transition-direction="backward"]::view-transition-old(root) {
+    animation: move-out-right 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+html[data-view-transition-direction="backward"]::view-transition-new(root) {
+    animation: move-in-left 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* main-content View Transitions */
+::view-transition-group(main-content) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+::view-transition-old(main-content),
+::view-transition-new(main-content) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation-fill-mode: both;
+}
+
+html[data-view-transition-direction='forward']::view-transition-old(main-content) {
+  animation-name: main-content-forward-out;
+}
+
+html[data-view-transition-direction='forward']::view-transition-new(main-content) {
+  animation-name: main-content-forward-in;
+}
+
+html[data-view-transition-direction='backward']::view-transition-old(main-content) {
+  animation-name: main-content-backward-out;
+}
+
+html[data-view-transition-direction='backward']::view-transition-new(main-content) {
+  animation-name: main-content-backward-in;
+}
+
+@keyframes main-content-forward-out {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-28px) scale(0.985);
+  }
+}
+
+@keyframes main-content-forward-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes main-content-backward-out {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(28px) scale(0.985);
+  }
+}
+
+@keyframes main-content-backward-in {
+  from {
+    opacity: 0;
+    transform: translateX(-28px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
