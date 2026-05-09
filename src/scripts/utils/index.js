@@ -22,7 +22,7 @@ export async function registerServiceWorker() {
   }
 
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js');
+    const registration = await navigator.serviceWorker.register('/sw.js', { type: 'module' });
     return registration;
   } catch (error) {
     console.error('Failed to install service worker:', error);
