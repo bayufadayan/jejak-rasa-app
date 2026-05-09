@@ -1,8 +1,9 @@
 import { openDB } from 'idb';
 
 const DATABASE_NAME = 'story-app-db';
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 const STORIES_STORE = 'stories';
+const SAVED_STORIES_STORE = 'saved-stories';
 const PENDING_STORIES_STORE = 'pending-stories';
 
 const dbPromise = openDB(DATABASE_NAME, DATABASE_VERSION, {
@@ -12,6 +13,13 @@ const dbPromise = openDB(DATABASE_NAME, DATABASE_VERSION, {
         keyPath: 'id',
       });
       storiesStore.createIndex('createdAt', 'createdAt');
+    }
+
+    if (!database.objectStoreNames.contains(SAVED_STORIES_STORE)) {
+      const savedStoriesStore = database.createObjectStore(SAVED_STORIES_STORE, {
+        keyPath: 'id',
+      });
+      savedStoriesStore.createIndex('savedAt', 'savedAt');
     }
 
     if (!database.objectStoreNames.contains(PENDING_STORIES_STORE)) {
@@ -58,6 +66,39 @@ const StoryDatabase = {
 
   async getAllStories() {
     return (await dbPromise).getAll(STORIES_STORE);
+  },
+
+  async saveStory(story) {
+    if (!story?.id) {
+      throw new Error('`id` is required to save story.');
+    }
+
+    const savedStory = {
+      ...story,
+      savedAt: story.savedAt || new Date().toISOString(),
+    };
+
+    return (await dbPromise).put(SAVED_STORIES_STORE, savedStory);
+  },
+
+  async getAllSavedStories() {
+    return (await dbPromise).getAll(SAVED_STORIES_STORE);
+  },
+
+  async getSavedStoryById(id) {
+    if (!id) {
+      throw new Error('`id` is required.');
+    }
+
+    return (await dbPromise).get(SAVED_STORIES_STORE, id);
+  },
+
+  async deleteSavedStory(id) {
+    if (!id) {
+      throw new Error('`id` is required.');
+    }
+
+    return (await dbPromise).delete(SAVED_STORIES_STORE, id);
   },
 
   async removeStory(id) {

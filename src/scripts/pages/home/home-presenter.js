@@ -5,6 +5,7 @@ export default class HomePresenter {
   #isFetching = false;
   #hasMoreStories = true;
   #allStories = [];
+  #savedStoryIds = new Set();
   #searchQuery = '';
   #sortBy = 'newest';
   #filterBy = 'all';
@@ -33,6 +34,7 @@ export default class HomePresenter {
       if (!isLoadMore) {
         const localStories = await this.#model.getMergedStories();
         this.#allStories = localStories;
+        await this.#refreshSavedStories();
         this.#notifyView();
       }
 
@@ -52,6 +54,7 @@ export default class HomePresenter {
       }
 
       this.#allStories = await this.#model.getMergedStories();
+      await this.#refreshSavedStories();
       this.#notifyView();
       this.#currentPage++;
     } catch (error) {
@@ -82,6 +85,7 @@ export default class HomePresenter {
     try {
       await this.#model.removeStoryFromLocal(id);
       this.#allStories = await this.#model.getMergedStories();
+      await this.#refreshSavedStories();
       this.#notifyView();
     } catch (error) {
       console.error('removeStory: error:', error);
@@ -89,10 +93,44 @@ export default class HomePresenter {
     }
   }
 
+  async toggleSavedStory(storyId) {
+    const targetStory = this.#allStories.find((story) => story.id === storyId);
+    if (!targetStory) {
+      this.#view.showToast('error', 'Story tidak ditemukan.');
+      return;
+    }
+
+    try {
+      const isSaved = this.#savedStoryIds.has(storyId);
+
+      if (isSaved) {
+        await this.#model.deleteSavedStory(storyId);
+        this.#view.showToast('success', 'Story dihapus dari tersimpan.');
+      } else {
+        await this.#model.saveStory(targetStory);
+        this.#view.showToast('success', 'Story disimpan di menu Tersimpan.');
+      }
+
+      await this.#refreshSavedStories();
+      this.#notifyView();
+    } catch (error) {
+      console.error('toggleSavedStory: error:', error);
+      this.#view.showToast('error', error.message || 'Gagal mengubah status tersimpan.');
+    }
+  }
+
   #notifyView() {
-    const filteredStories = this.#getFilteredStories();
+    const filteredStories = this.#getFilteredStories().map((story) => ({
+      ...story,
+      isSaved: this.#savedStoryIds.has(story.id),
+    }));
     const locationStories = filteredStories.filter((story) => this.#model.hasValidCoordinate(story));
     this.#view.populateStories(filteredStories, locationStories, this.#hasMoreStories);
+  }
+
+  async #refreshSavedStories() {
+    const savedStories = await this.#model.getSavedStories();
+    this.#savedStoryIds = new Set(savedStories.map((story) => story.id));
   }
 
   #getFilteredStories() {

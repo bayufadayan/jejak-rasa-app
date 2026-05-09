@@ -23,6 +23,7 @@ class MainHeader extends HTMLElement {
                 <ul id="nav-list" class="nav-list">
                     <li><a href="#/">Beranda</a></li>
                     <li><a href="#/about">About</a></li>
+                    <li><a href="#/saved">Tersimpan</a></li>
                     <li>
                         <button
                             id="push-toggle-button"

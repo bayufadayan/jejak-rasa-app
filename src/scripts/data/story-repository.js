@@ -63,6 +63,14 @@ function sortByDateDesc(stories) {
   });
 }
 
+function sortBySavedAtDesc(stories) {
+  return [...stories].sort((first, second) => {
+    const firstDate = new Date(first.savedAt || first.createdAt || 0).getTime();
+    const secondDate = new Date(second.savedAt || second.createdAt || 0).getTime();
+    return secondDate - firstDate;
+  });
+}
+
 const StoryRepository = {
   async getCachedStories() {
     return sortByDateDesc(await StoryDatabase.getAllStories());
@@ -71,6 +79,26 @@ const StoryRepository = {
   async getPendingStories() {
     const pendingStories = await StoryDatabase.getAllPendingStories();
     return sortByDateDesc(pendingStories.map(toPendingViewModel));
+  },
+
+  async getSavedStories() {
+    return sortBySavedAtDesc(await StoryDatabase.getAllSavedStories());
+  },
+
+  async getSavedStoryById(id) {
+    return StoryDatabase.getSavedStoryById(id);
+  },
+
+  async saveStory(story) {
+    return StoryDatabase.saveStory(story);
+  },
+
+  async deleteSavedStory(id) {
+    return StoryDatabase.deleteSavedStory(id);
+  },
+
+  async isStorySaved(id) {
+    return Boolean(await StoryDatabase.getSavedStoryById(id));
   },
 
   async getMergedStories() {
@@ -191,10 +219,14 @@ const StoryRepository = {
 
     if (id.startsWith('local-pending-')) {
       const localId = id.replace('local-pending-', '');
-      return StoryDatabase.removePendingStory(localId);
+      await StoryDatabase.removePendingStory(localId);
+      await StoryDatabase.deleteSavedStory(id);
+      return true;
     }
 
-    return StoryDatabase.removeStory(id);
+    await StoryDatabase.removeStory(id);
+    await StoryDatabase.deleteSavedStory(id);
+    return true;
   },
 
   hasValidCoordinate,

@@ -158,6 +158,7 @@ export default class HomePage {
           ${stories.map((story) => this.#buildStoryCard(story)).join('')}
         </div>
       `;
+      createIcons({ icons });
       
       // Setup Interactivity: Sync list to map
       stories.forEach((story) => {
@@ -180,6 +181,8 @@ export default class HomePage {
         </div>
       `;
     }
+
+    createIcons({ icons });
 
     const loadMoreContainer = document.getElementById('home-load-more-container');
     if (loadMoreContainer) {
@@ -460,10 +463,14 @@ export default class HomePage {
     const imageUrl = this.#escapeAttribute(story.photoUrl || '');
     const createdAt = this.#formatDate(story.createdAt);
     const locationText = this.#formatStoryLocation(story);
+    const isSaved = Boolean(story.isSaved);
     const syncBadge = story.isPending ? '<span class="home__story-location" style="background:#ffe7b8;">Pending Sync</span>' : '';
     const detailAction = story.isPending
       ? '<span class="home__story-link" aria-disabled="true">Menunggu sinkronisasi</span>'
       : `<a class="home__story-link" href="#/story/${story.id}">Lihat detail</a>`;
+    const saveLabel = isSaved ? 'Hapus dari tersimpan' : 'Simpan cerita';
+    const saveButtonClass = isSaved ? 'home__story-save-btn is-saved' : 'home__story-save-btn';
+    const saveButtonPressed = isSaved ? 'true' : 'false';
 
     return /* html */ `
       <article id="story-card-${story.id}" class="home__story-card" aria-label="Kartu cerita ${title}">
@@ -480,7 +487,18 @@ export default class HomePage {
 
           <h3 class="home__story-title">${title}</h3>
           <p class="home__story-excerpt">${description}</p>
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem;">
+          <div class="home__story-actions">
+            <button
+              type="button"
+              class="${saveButtonClass}"
+              data-toggle-save-story-id="${story.id}"
+              aria-pressed="${saveButtonPressed}"
+              aria-label="${saveLabel}"
+              title="${saveLabel}"
+            >
+              <i data-lucide="bookmark" aria-hidden="true"></i>
+              <span class="sr-only">${saveLabel}</span>
+            </button>
             ${detailAction}
             <button type="button" class="main__btn" data-delete-story-id="${story.id}" style="padding: 0.4em 0.8em; font-size: 0.9em; margin-top: 0;">Hapus Lokal</button>
           </div>
@@ -591,6 +609,15 @@ export default class HomePage {
     if (storiesContainer) {
       storiesContainer.addEventListener('click', (event) => {
         const targetElement = event.target instanceof Element ? event.target : null;
+        const saveButton = targetElement?.closest('[data-toggle-save-story-id]');
+        if (saveButton) {
+          const storyId = saveButton.getAttribute('data-toggle-save-story-id');
+          if (storyId) {
+            this.#presenter.toggleSavedStory(storyId);
+          }
+          return;
+        }
+
         const deleteButton = targetElement?.closest('[data-delete-story-id]');
         if (!deleteButton) {
           return;

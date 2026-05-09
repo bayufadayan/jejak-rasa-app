@@ -621,6 +621,42 @@ select,
   gap: 12px;
 }
 
+.home__story-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.home__story-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--color-border-dark);
+  background: var(--color-bg-overlay-078);
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.home__story-save-btn:hover {
+  transform: translateY(-2px);
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+
+.home__story-save-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.home__story-save-btn.is-saved svg {
+  fill: currentColor;
+  stroke-width: 2;
+}
+
 .home__story-topline {
   display: flex;
   flex-wrap: wrap;
