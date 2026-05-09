@@ -1,4 +1,3 @@
-// Simple caching strategies without external dependencies
 const CACHE_NAMES = {
   google_fonts: 'google-fonts-v1',
   fontawesome: 'fontawesome-v1',
@@ -8,10 +7,8 @@ const CACHE_NAMES = {
   maptiler: 'maptiler-api-v1',
 };
 
-// Placeholder used by vite-plugin-pwa injectManifest during production build.
 const manifest = self.__WB_MANIFEST;
 
-// Cache First strategy
 async function cacheFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
@@ -28,7 +25,6 @@ async function cacheFirst(request, cacheName) {
   }
 }
 
-// Network First strategy
 async function networkFirst(request, cacheName) {
   try {
     const response = await fetch(request);
@@ -43,7 +39,6 @@ async function networkFirst(request, cacheName) {
   }
 }
 
-// Stale While Revalidate strategy
 async function staleWhileRevalidate(request, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
@@ -58,12 +53,10 @@ async function staleWhileRevalidate(request, cacheName) {
   return cached || fetchPromise;
 }
 
-// Install event: Cache essential files
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate event: Clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -77,37 +70,30 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event: Route requests with appropriate strategies
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Google Fonts - Cache First
   if (url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com') {
     return event.respondWith(cacheFirst(request, CACHE_NAMES.google_fonts));
   }
 
-  // Font Awesome - Cache First
   if (url.origin === 'https://cdnjs.cloudflare.com' || url.origin.includes('fontawesome')) {
     return event.respondWith(cacheFirst(request, CACHE_NAMES.fontawesome));
   }
 
-  // UI Avatars - Cache First
   if (url.origin === 'https://ui-avatars.com') {
     return event.respondWith(cacheFirst(request, CACHE_NAMES.avatars));
   }
 
-  // Story API (non-image) - Network First
   if (url.origin.includes('story-api.dicoding.dev') && request.destination !== 'image') {
     return event.respondWith(networkFirst(request, CACHE_NAMES.story_api));
   }
 
-  // Story API Images - Stale While Revalidate
   if (url.origin.includes('story-api.dicoding.dev') && request.destination === 'image') {
     return event.respondWith(staleWhileRevalidate(request, CACHE_NAMES.story_images));
   }
 
-  // MapTiler - Cache First
   if (url.origin.includes('maptiler')) {
     return event.respondWith(cacheFirst(request, CACHE_NAMES.maptiler));
   }

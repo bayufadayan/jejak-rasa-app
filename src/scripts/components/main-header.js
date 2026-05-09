@@ -89,7 +89,6 @@ class MainHeader extends HTMLElement {
             dropdownButton.setAttribute('aria-expanded', 'true');
             dropdownOption.classList.add('open');
             dropdownOption.hidden = false;
-            // Move focus to first menu item
             const firstItem = dropdownOption.querySelector('[role="menuitem"]');
             if (firstItem) firstItem.focus();
         };
@@ -113,7 +112,6 @@ class MainHeader extends HTMLElement {
         });
 
         document.addEventListener('keydown', (event) => {
-            // Close account dropdown on Escape
             if (event.key === 'Escape') {
                 if (dropdownOption.classList.contains('open')) {
                     closeDropdown();
@@ -129,7 +127,6 @@ class MainHeader extends HTMLElement {
             }
         });
 
-        // Hamburger drawer toggle
         if (drawerButton && navDrawer) {
             drawerButton.addEventListener('click', () => {
                 const isOpen = navDrawer.classList.contains('open');
@@ -137,14 +134,12 @@ class MainHeader extends HTMLElement {
                 drawerButton.setAttribute('aria-expanded', String(!isOpen));
                 drawerButton.setAttribute('aria-label', isOpen ? 'Buka menu navigasi' : 'Tutup menu navigasi');
                 if (!isOpen) {
-                    // Focus first nav link when opening
                     const firstLink = navDrawer.querySelector('a, button');
                     if (firstLink) firstLink.focus();
                 }
             });
         }
 
-        // Initialize dropdown as hidden
         dropdownOption.hidden = true;
 
         document.querySelector('.nav-list__dropdown-logout-btn').addEventListener('click', () => {

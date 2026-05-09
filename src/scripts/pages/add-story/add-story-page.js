@@ -238,7 +238,6 @@ export default class AddStoryPage {
       searchInput.focus();
     });
 
-    // Keyboard navigation for search results (ArrowUp / ArrowDown / Enter / Escape)
     searchInput.addEventListener('keydown', (event) => {
       const items = searchResults.querySelectorAll('button[data-lat]');
       if (!items.length) return;

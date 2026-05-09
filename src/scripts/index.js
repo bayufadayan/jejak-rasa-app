@@ -1,4 +1,3 @@
-// CSS imports
 import '../styles/styles.css';
 
 import App from './pages/app';
@@ -17,7 +16,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   await app.renderPage();
 
   window.addEventListener('hashchange', async () => {
-    // Stop all active media streams before leaving the page
     if (Array.isArray(window.currentStreams)) {
       window.currentStreams.forEach((stream) => {
         if (stream.active) {
@@ -40,13 +38,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const skipToContent = document.querySelector('.skip-to-content');
   if (skipToContent) {
     skipToContent.addEventListener('click', (event) => {
-      event.preventDefault(); // Mencegah refresh halaman
-      skipToContent.blur(); // Menghilangkan fokus skip to content
+      event.preventDefault();
+      skipToContent.blur();
       
       const mainContent = document.querySelector('#main-content');
       if (mainContent) {
-        mainContent.focus(); // Fokus ke konten utama
-        mainContent.scrollIntoView(); // Halaman scroll ke konten utama
+        mainContent.focus();
+        mainContent.scrollIntoView();
       }
     });
   }
