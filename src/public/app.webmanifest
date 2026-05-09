@@ -48,37 +48,37 @@
   ],
   "screenshots": [
     {
-      "src": "/images/screenshots/CityCareApp_001.png",
+      "src": "/images/screenshots/JejakRasaApp_001.png",
       "sizes": "1920x1043",
       "type": "image/png",
       "form_factor": "wide"
     },
     {
-      "src": "/images/screenshots/CityCareApp_002.png",
+      "src": "/images/screenshots/JejakRasaApp_002.png",
       "sizes": "1920x1043",
       "type": "image/png",
       "form_factor": "wide"
     },
     {
-      "src": "/images/screenshots/CityCareApp_003.png",
+      "src": "/images/screenshots/JejakRasaApp_003.png",
       "sizes": "1920x1043",
       "type": "image/png",
       "form_factor": "wide"
     },
     {
-      "src": "/images/screenshots/CityCareApp_004.png",
+      "src": "/images/screenshots/JejakRasaApp_004.png",
       "sizes": "1080x2280",
       "type": "image/png",
       "form_factor": "narrow"
     },
     {
-      "src": "/images/screenshots/CityCareApp_005.png",
+      "src": "/images/screenshots/JejakRasaApp_005.png",
       "sizes": "1080x2280",
       "type": "image/png",
       "form_factor": "narrow"
     },
     {
-      "src": "/images/screenshots/CityCareApp_006.png",
+      "src": "/images/screenshots/JejakRasaApp_006.png",
       "sizes": "1080x2280",
       "type": "image/png",
       "form_factor": "narrow"

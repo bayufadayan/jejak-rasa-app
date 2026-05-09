@@ -65,6 +65,7 @@ export default class AddStoryPage {
                 <div class="add-story__photo-group">
                   <p class="add-story__photo-label">Foto cerita <span class="add-story__required">*</span></p>
                   <div class="add-story__photo-actions">
+                    <label for="photo-gallery-input" class="sr-only">Pilih foto dari galeri perangkat</label>
                     <input type="file" id="photo-gallery-input" accept="image/*" hidden />
                     <button type="button" class="add-story__photo-action-btn add-story__photo-action-btn--gallery" id="photo-gallery-button">
                       <i data-lucide="images" aria-hidden="true"></i>
@@ -76,9 +77,10 @@ export default class AddStoryPage {
                     </button>
                   </div>
                   <div class="add-story__camera-panel" id="camera-panel" hidden>
+                    <label for="camera-select" class="sr-only">Pilih kamera perangkat yang tersedia</label>
                     <select id="camera-select" class="add-story__camera-select" aria-label="Pilih kamera perangkat"></select>
                     <div class="add-story__camera-view">
-                      <video id="camera-video" class="add-story__camera-video" playsinline muted>Video stream not available.</video>
+                      <video id="camera-video" class="add-story__camera-video" playsinline muted aria-label="Pratinjau video dari kamera perangkat">Video stream tidak tersedia. Izinkan akses ke kamera untuk menggunakan fitur ini.</video>
                     </div>
                     <div class="add-story__camera-tools">
                       <div class="add-story__camera-tools-buttons">
@@ -88,7 +90,7 @@ export default class AddStoryPage {
                     </div>
                   </div>
                   <div id="photo-preview" class="add-story__photo-preview">
-                    <canvas id="photo-preview-canvas" class="add-story__photo-preview-canvas" hidden></canvas>
+                    <canvas id="photo-preview-canvas" class="add-story__photo-preview-canvas" hidden aria-label="Pratinjau foto cerita yang sudah diproses"></canvas>
                     <div id="photo-preview-empty" class="add-story__photo-preview-empty">
                       <p>Foto akan tampil di sini</p>
                     </div>
@@ -132,9 +134,9 @@ export default class AddStoryPage {
 
             <aside class="add-story__preview-panel">
               <div class="add-story__preview-card">
-                <p class="add-story__preview-label  ">Preview cerita</p>
+                <p class="add-story__preview-label">Preview cerita</p>
                 <div id="preview-figure" class="add-story__preview-figure" style="display: none;">
-                  <img id="preview-image" src="" alt="preview-image" />
+                  <img id="preview-image" src="" alt="Pratinjau foto dari cerita yang akan dibagikan" />
                 </div>
                 <div id="preview-empty" class="add-story__preview-empty">
                   <p>Foto akan tampil di sini</p>
