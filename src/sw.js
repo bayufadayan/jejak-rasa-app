@@ -6,9 +6,7 @@ import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
 clientsClaim();
 
-const precacheManifest = Array.isArray(self.__WB_MANIFEST) ? self.__WB_MANIFEST : [];
-
-precacheAndRoute(precacheManifest);
+precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
 const appShellHandler = async () => {
