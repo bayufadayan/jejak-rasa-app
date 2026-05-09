@@ -17,7 +17,8 @@ class FieldGroup extends HTMLElement {
 
     render() {
         const type = this.getAttribute('type') || 'text';
-        const id = this.getAttribute('id') || `input-${Math.random().toString(36).substring(2, 9)}`;
+        const id = this.getAttribute('id');
+        const inputId = id ? `${id}-input` : `input-${Math.random().toString(36).substring(2, 9)}`;
         const label = this.getAttribute('label') || 'Your Label';
         const placeholder = this.getAttribute('placeholder') || ' ';
         const step = this.getAttribute('step') || '';
@@ -25,13 +26,13 @@ class FieldGroup extends HTMLElement {
         const isRequired = this.getAttribute('required') !== null;
 
         const inputElement = isTextarea
-            ? `<textarea id="${id}" name="${id}" class="auth__input auth__input--textarea" placeholder="${placeholder}" ${isRequired ? 'required' : ''} cols="30" rows="1"></textarea>`
-            : `<input type="${type}" id="${id}" name="${id}" class="auth__input" placeholder="${placeholder}" ${step ? `step="${step}"` : ''} ${isRequired ? 'required' : ''} />`;
+            ? `<textarea id="${inputId}" name="${inputId}" class="auth__input auth__input--textarea" placeholder="${placeholder}" ${isRequired ? 'required' : ''} cols="30" rows="1"></textarea>`
+            : `<input type="${type}" id="${inputId}" name="${inputId}" class="auth__input" placeholder="${placeholder}" ${step ? `step="${step}"` : ''} ${isRequired ? 'required' : ''} />`;
 
         this.innerHTML = /* html */ `
             <div class="auth__field-group">
                 ${inputElement}
-                <label for="${id}" class="auth__label">
+                <label for="${inputId}" class="auth__label">
                     ${label}
                 </label>
                 <p class="auth__field-error-message"></p>

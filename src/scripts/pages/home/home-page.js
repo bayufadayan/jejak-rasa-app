@@ -62,11 +62,16 @@ export default class HomePage {
                 <h2 class="home__section-title">Cerita yang Pernah Dibuat</h2>
               </div>
               <div class="home__section-actions">
+                <label for="home-search-input" class="sr-only">Cari cerita</label>
                 <input id="home-search-input" type="search" placeholder="Cari nama/deskripsi story..." class="add-story__map-search-input" style="min-width: 240px;" />
+
+                <label for="home-sort-select" class="sr-only">Urutkan cerita</label>
                 <select id="home-sort-select" class="add-story__map-search-input" style="min-width: 150px;">
                   <option value="newest">Terbaru</option>
                   <option value="oldest">Terlama</option>
                 </select>
+
+                <label for="home-filter-select" class="sr-only">Filter cerita</label>
                 <select id="home-filter-select" class="add-story__map-search-input" style="min-width: 170px;">
                   <option value="all">Semua</option>
                   <option value="with-location">Dengan Lokasi</option>
@@ -486,7 +491,7 @@ export default class HomePage {
           </div>
           ${syncBadge}
 
-          <h3 class="home__story-title">${title}</h3>
+          <h2 class="home__story-title">${title}</h2>
           <p class="home__story-excerpt">${description}</p>
           <div class="home__story-actions">
             <button
